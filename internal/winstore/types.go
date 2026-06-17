@@ -26,6 +26,7 @@ type CertificateInfo struct {
 	HasPrivateKey  bool
 	IsTPM          bool
 	ProviderName   string
+	CertificateDER []byte
 }
 
 // HashAlgorithm identifies the digest algorithm used for signing.

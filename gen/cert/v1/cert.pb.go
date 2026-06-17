@@ -204,19 +204,20 @@ func (x *ListCertificatesResponse) GetCertificates() []*CertificateInfo {
 }
 
 type CertificateInfo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Thumbprint    string                 `protobuf:"bytes,1,opt,name=thumbprint,proto3" json:"thumbprint,omitempty"`
-	Subject       string                 `protobuf:"bytes,2,opt,name=subject,proto3" json:"subject,omitempty"`
-	Issuer        string                 `protobuf:"bytes,3,opt,name=issuer,proto3" json:"issuer,omitempty"`
-	NotBefore     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=not_before,json=notBefore,proto3" json:"not_before,omitempty"`
-	NotAfter      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=not_after,json=notAfter,proto3" json:"not_after,omitempty"`
-	KeyAlgorithm  string                 `protobuf:"bytes,6,opt,name=key_algorithm,json=keyAlgorithm,proto3" json:"key_algorithm,omitempty"`
-	KeySize       int32                  `protobuf:"varint,7,opt,name=key_size,json=keySize,proto3" json:"key_size,omitempty"`
-	HasPrivateKey bool                   `protobuf:"varint,8,opt,name=has_private_key,json=hasPrivateKey,proto3" json:"has_private_key,omitempty"`
-	IsTpm         bool                   `protobuf:"varint,9,opt,name=is_tpm,json=isTpm,proto3" json:"is_tpm,omitempty"`
-	ProviderName  string                 `protobuf:"bytes,10,opt,name=provider_name,json=providerName,proto3" json:"provider_name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Thumbprint     string                 `protobuf:"bytes,1,opt,name=thumbprint,proto3" json:"thumbprint,omitempty"`
+	Subject        string                 `protobuf:"bytes,2,opt,name=subject,proto3" json:"subject,omitempty"`
+	Issuer         string                 `protobuf:"bytes,3,opt,name=issuer,proto3" json:"issuer,omitempty"`
+	NotBefore      *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=not_before,json=notBefore,proto3" json:"not_before,omitempty"`
+	NotAfter       *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=not_after,json=notAfter,proto3" json:"not_after,omitempty"`
+	KeyAlgorithm   string                 `protobuf:"bytes,6,opt,name=key_algorithm,json=keyAlgorithm,proto3" json:"key_algorithm,omitempty"`
+	KeySize        int32                  `protobuf:"varint,7,opt,name=key_size,json=keySize,proto3" json:"key_size,omitempty"`
+	HasPrivateKey  bool                   `protobuf:"varint,8,opt,name=has_private_key,json=hasPrivateKey,proto3" json:"has_private_key,omitempty"`
+	IsTpm          bool                   `protobuf:"varint,9,opt,name=is_tpm,json=isTpm,proto3" json:"is_tpm,omitempty"`
+	ProviderName   string                 `protobuf:"bytes,10,opt,name=provider_name,json=providerName,proto3" json:"provider_name,omitempty"`
+	CertificateDer []byte                 `protobuf:"bytes,11,opt,name=certificate_der,json=certificateDer,proto3" json:"certificate_der,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CertificateInfo) Reset() {
@@ -317,6 +318,13 @@ func (x *CertificateInfo) GetProviderName() string {
 		return x.ProviderName
 	}
 	return ""
+}
+
+func (x *CertificateInfo) GetCertificateDer() []byte {
+	if x != nil {
+		return x.CertificateDer
+	}
+	return nil
 }
 
 type SignHashRequest struct {
@@ -454,7 +462,7 @@ const file_cert_v1_cert_proto_rawDesc = "" +
 	"\x12cert/v1/cert.proto\x12\acert.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x19\n" +
 	"\x17ListCertificatesRequest\"X\n" +
 	"\x18ListCertificatesResponse\x12<\n" +
-	"\fcertificates\x18\x01 \x03(\v2\x18.cert.v1.CertificateInfoR\fcertificates\"\xfb\x02\n" +
+	"\fcertificates\x18\x01 \x03(\v2\x18.cert.v1.CertificateInfoR\fcertificates\"\xa4\x03\n" +
 	"\x0fCertificateInfo\x12\x1e\n" +
 	"\n" +
 	"thumbprint\x18\x01 \x01(\tR\n" +
@@ -469,7 +477,8 @@ const file_cert_v1_cert_proto_rawDesc = "" +
 	"\x0fhas_private_key\x18\b \x01(\bR\rhasPrivateKey\x12\x15\n" +
 	"\x06is_tpm\x18\t \x01(\bR\x05isTpm\x12#\n" +
 	"\rprovider_name\x18\n" +
-	" \x01(\tR\fproviderName\"\xbe\x01\n" +
+	" \x01(\tR\fproviderName\x12'\n" +
+	"\x0fcertificate_der\x18\v \x01(\fR\x0ecertificateDer\"\xbe\x01\n" +
 	"\x0fSignHashRequest\x12\x1e\n" +
 	"\n" +
 	"thumbprint\x18\x01 \x01(\tR\n" +

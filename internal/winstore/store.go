@@ -125,16 +125,17 @@ func certInfoFromContext(ctx *windows.CertContext) (CertificateInfo, bool) {
 	keyAlg, keySize := keyMetadata(cert)
 
 	return CertificateInfo{
-		Thumbprint:    thumbprintFromCert(cert),
-		Subject:       cert.Subject.String(),
-		Issuer:        cert.Issuer.String(),
-		NotBefore:     cert.NotBefore,
-		NotAfter:      cert.NotAfter,
-		KeyAlgorithm:  keyAlg,
-		KeySize:       keySize,
-		HasPrivateKey: true,
-		IsTPM:         isTPMCert(ctx, providerName),
-		ProviderName:  providerName,
+		Thumbprint:     thumbprintFromCert(cert),
+		Subject:        cert.Subject.String(),
+		Issuer:         cert.Issuer.String(),
+		NotBefore:      cert.NotBefore,
+		NotAfter:       cert.NotAfter,
+		KeyAlgorithm:   keyAlg,
+		KeySize:        keySize,
+		HasPrivateKey:  true,
+		IsTPM:          isTPMCert(ctx, providerName),
+		ProviderName:   providerName,
+		CertificateDER: append([]byte(nil), der...),
 	}, true
 }
 

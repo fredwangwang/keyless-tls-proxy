@@ -28,6 +28,7 @@ message CertificateInfo {
   bool has_private_key = 8;
   bool is_tpm = 9;
   string provider_name = 10;
+  bytes certificate_der = 11;
 }
 
 message SignHashRequest {

@@ -29,16 +29,17 @@ func (s *CertService) ListCertificates(ctx context.Context, _ *certv1.ListCertif
 	out := make([]*certv1.CertificateInfo, 0, len(certs))
 	for _, c := range certs {
 		out = append(out, &certv1.CertificateInfo{
-			Thumbprint:    c.Thumbprint,
-			Subject:       c.Subject,
-			Issuer:        c.Issuer,
-			NotBefore:     timestamppb.New(c.NotBefore),
-			NotAfter:      timestamppb.New(c.NotAfter),
-			KeyAlgorithm:  c.KeyAlgorithm,
-			KeySize:       int32(c.KeySize),
-			HasPrivateKey: c.HasPrivateKey,
-			IsTpm:         c.IsTPM,
-			ProviderName:  c.ProviderName,
+			Thumbprint:     c.Thumbprint,
+			Subject:        c.Subject,
+			Issuer:         c.Issuer,
+			NotBefore:      timestamppb.New(c.NotBefore),
+			NotAfter:       timestamppb.New(c.NotAfter),
+			KeyAlgorithm:   c.KeyAlgorithm,
+			KeySize:        int32(c.KeySize),
+			HasPrivateKey:  c.HasPrivateKey,
+			IsTpm:          c.IsTPM,
+			ProviderName:   c.ProviderName,
+			CertificateDer: c.CertificateDER,
 		})
 	}
 	return &certv1.ListCertificatesResponse{Certificates: out}, nil
