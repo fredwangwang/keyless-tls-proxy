@@ -6,6 +6,6 @@ func ListCertificates() ([]CertificateInfo, error) {
 	return nil, ErrUnsupportedPlatform
 }
 
-func SignHash(thumbprint string, digest []byte, hash HashAlgorithm) (*SignResult, error) {
+func SignHash(thumbprint string, digest []byte, hash HashAlgorithm, padding RSAPadding) (*SignResult, error) {
 	return nil, ErrUnsupportedPlatform
 }

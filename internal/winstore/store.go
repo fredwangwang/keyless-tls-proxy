@@ -57,7 +57,7 @@ func ListCertificates() ([]CertificateInfo, error) {
 	return out, nil
 }
 
-func SignHash(thumbprint string, digest []byte, hash HashAlgorithm) (*SignResult, error) {
+func SignHash(thumbprint string, digest []byte, hash HashAlgorithm, padding RSAPadding) (*SignResult, error) {
 	cryptoHash, err := hash.CryptoHash()
 	if err != nil {
 		return nil, err
@@ -68,6 +68,9 @@ func SignHash(thumbprint string, digest []byte, hash HashAlgorithm) (*SignResult
 	}
 	if len(digest) != expectedLen {
 		return nil, ErrInvalidDigest
+	}
+	if padding == 0 {
+		padding = RSAPaddingPKCS1
 	}
 
 	store, err := openMyStore()
@@ -82,13 +85,14 @@ func SignHash(thumbprint string, digest []byte, hash HashAlgorithm) (*SignResult
 	}
 	defer windows.CertFreeCertificateContext(ctx)
 
-	sig, algName, err := signHashWithCert(ctx, digest, cryptoHash)
+	sig, algName, err := signHashWithCert(ctx, digest, cryptoHash, padding)
 	if err != nil {
 		return nil, fmt.Errorf("sign hash: %w", err)
 	}
 	return &SignResult{
 		Signature:          sig,
 		SignatureAlgorithm: algName,
+		Padding:            padding,
 	}, nil
 }
 

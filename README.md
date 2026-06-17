@@ -20,6 +20,8 @@ This creates `certs/ca.crt`, `certs/server.crt`, `certs/server.key`, `certs/clie
 
 ### 2. Start the server
 
+Restart the server after code or proto changes (`go run` recompiles automatically; stop any previously running instance first).
+
 ```powershell
 go run ./cmd/cert-server `
   -addr 127.0.0.1:50051 `
@@ -65,13 +67,13 @@ The client will:
 ## gRPC API
 
 - **ListCertificates** — returns thumbprint, subject, issuer, validity, key type/size, TPM flag, and provider name
-- **SignHash** — signs a pre-computed digest (SHA-256, SHA-384, or SHA-512) with the certificate identified by thumbprint
+- **SignHash** — signs a pre-computed digest (SHA-256, SHA-384, or SHA-512) with the certificate identified by thumbprint; RSA keys support `pkcs1` (default) or `pss` padding via `rsa_padding`
 
 ## TPM notes
 
 - Certificates using **Microsoft Platform Crypto Provider** are flagged as `is_tpm=true`
 - TPM keys are non-exportable; signing happens in-place via `NCryptSignHash`
-- RSA signing uses PKCS#1 v1.5 (compatible with most TPM keys)
+- RSA signing supports PKCS#1 v1.5 (default) and PSS (`-padding pss` on the example client)
 - TPM RSA keys are typically limited to 2048-bit
 
 ## Regenerating protobuf code

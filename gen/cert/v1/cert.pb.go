@@ -22,6 +22,55 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type RSAPadding int32
+
+const (
+	RSAPadding_RSA_PADDING_UNSPECIFIED RSAPadding = 0
+	RSAPadding_PKCS1                   RSAPadding = 1
+	RSAPadding_PSS                     RSAPadding = 2
+)
+
+// Enum value maps for RSAPadding.
+var (
+	RSAPadding_name = map[int32]string{
+		0: "RSA_PADDING_UNSPECIFIED",
+		1: "PKCS1",
+		2: "PSS",
+	}
+	RSAPadding_value = map[string]int32{
+		"RSA_PADDING_UNSPECIFIED": 0,
+		"PKCS1":                   1,
+		"PSS":                     2,
+	}
+)
+
+func (x RSAPadding) Enum() *RSAPadding {
+	p := new(RSAPadding)
+	*p = x
+	return p
+}
+
+func (x RSAPadding) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (RSAPadding) Descriptor() protoreflect.EnumDescriptor {
+	return file_cert_v1_cert_proto_enumTypes[0].Descriptor()
+}
+
+func (RSAPadding) Type() protoreflect.EnumType {
+	return &file_cert_v1_cert_proto_enumTypes[0]
+}
+
+func (x RSAPadding) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use RSAPadding.Descriptor instead.
+func (RSAPadding) EnumDescriptor() ([]byte, []int) {
+	return file_cert_v1_cert_proto_rawDescGZIP(), []int{0}
+}
+
 type HashAlgorithm int32
 
 const (
@@ -58,11 +107,11 @@ func (x HashAlgorithm) String() string {
 }
 
 func (HashAlgorithm) Descriptor() protoreflect.EnumDescriptor {
-	return file_cert_v1_cert_proto_enumTypes[0].Descriptor()
+	return file_cert_v1_cert_proto_enumTypes[1].Descriptor()
 }
 
 func (HashAlgorithm) Type() protoreflect.EnumType {
-	return &file_cert_v1_cert_proto_enumTypes[0]
+	return &file_cert_v1_cert_proto_enumTypes[1]
 }
 
 func (x HashAlgorithm) Number() protoreflect.EnumNumber {
@@ -71,7 +120,7 @@ func (x HashAlgorithm) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use HashAlgorithm.Descriptor instead.
 func (HashAlgorithm) EnumDescriptor() ([]byte, []int) {
-	return file_cert_v1_cert_proto_rawDescGZIP(), []int{0}
+	return file_cert_v1_cert_proto_rawDescGZIP(), []int{1}
 }
 
 type ListCertificatesRequest struct {
@@ -275,6 +324,7 @@ type SignHashRequest struct {
 	Thumbprint    string                 `protobuf:"bytes,1,opt,name=thumbprint,proto3" json:"thumbprint,omitempty"`
 	Digest        []byte                 `protobuf:"bytes,2,opt,name=digest,proto3" json:"digest,omitempty"`
 	HashAlgorithm HashAlgorithm          `protobuf:"varint,3,opt,name=hash_algorithm,json=hashAlgorithm,proto3,enum=cert.v1.HashAlgorithm" json:"hash_algorithm,omitempty"`
+	RsaPadding    RSAPadding             `protobuf:"varint,4,opt,name=rsa_padding,json=rsaPadding,proto3,enum=cert.v1.RSAPadding" json:"rsa_padding,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -330,10 +380,18 @@ func (x *SignHashRequest) GetHashAlgorithm() HashAlgorithm {
 	return HashAlgorithm_HASH_ALGORITHM_UNSPECIFIED
 }
 
+func (x *SignHashRequest) GetRsaPadding() RSAPadding {
+	if x != nil {
+		return x.RsaPadding
+	}
+	return RSAPadding_RSA_PADDING_UNSPECIFIED
+}
+
 type SignHashResponse struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	Signature          []byte                 `protobuf:"bytes,1,opt,name=signature,proto3" json:"signature,omitempty"`
 	SignatureAlgorithm string                 `protobuf:"bytes,2,opt,name=signature_algorithm,json=signatureAlgorithm,proto3" json:"signature_algorithm,omitempty"`
+	RsaPadding         RSAPadding             `protobuf:"varint,3,opt,name=rsa_padding,json=rsaPadding,proto3,enum=cert.v1.RSAPadding" json:"rsa_padding,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -382,6 +440,13 @@ func (x *SignHashResponse) GetSignatureAlgorithm() string {
 	return ""
 }
 
+func (x *SignHashResponse) GetRsaPadding() RSAPadding {
+	if x != nil {
+		return x.RsaPadding
+	}
+	return RSAPadding_RSA_PADDING_UNSPECIFIED
+}
+
 var File_cert_v1_cert_proto protoreflect.FileDescriptor
 
 const file_cert_v1_cert_proto_rawDesc = "" +
@@ -404,16 +469,25 @@ const file_cert_v1_cert_proto_rawDesc = "" +
 	"\x0fhas_private_key\x18\b \x01(\bR\rhasPrivateKey\x12\x15\n" +
 	"\x06is_tpm\x18\t \x01(\bR\x05isTpm\x12#\n" +
 	"\rprovider_name\x18\n" +
-	" \x01(\tR\fproviderName\"\x88\x01\n" +
+	" \x01(\tR\fproviderName\"\xbe\x01\n" +
 	"\x0fSignHashRequest\x12\x1e\n" +
 	"\n" +
 	"thumbprint\x18\x01 \x01(\tR\n" +
 	"thumbprint\x12\x16\n" +
 	"\x06digest\x18\x02 \x01(\fR\x06digest\x12=\n" +
-	"\x0ehash_algorithm\x18\x03 \x01(\x0e2\x16.cert.v1.HashAlgorithmR\rhashAlgorithm\"a\n" +
+	"\x0ehash_algorithm\x18\x03 \x01(\x0e2\x16.cert.v1.HashAlgorithmR\rhashAlgorithm\x124\n" +
+	"\vrsa_padding\x18\x04 \x01(\x0e2\x13.cert.v1.RSAPaddingR\n" +
+	"rsaPadding\"\x97\x01\n" +
 	"\x10SignHashResponse\x12\x1c\n" +
 	"\tsignature\x18\x01 \x01(\fR\tsignature\x12/\n" +
-	"\x13signature_algorithm\x18\x02 \x01(\tR\x12signatureAlgorithm*S\n" +
+	"\x13signature_algorithm\x18\x02 \x01(\tR\x12signatureAlgorithm\x124\n" +
+	"\vrsa_padding\x18\x03 \x01(\x0e2\x13.cert.v1.RSAPaddingR\n" +
+	"rsaPadding*=\n" +
+	"\n" +
+	"RSAPadding\x12\x1b\n" +
+	"\x17RSA_PADDING_UNSPECIFIED\x10\x00\x12\t\n" +
+	"\x05PKCS1\x10\x01\x12\a\n" +
+	"\x03PSS\x10\x02*S\n" +
 	"\rHashAlgorithm\x12\x1e\n" +
 	"\x1aHASH_ALGORITHM_UNSPECIFIED\x10\x00\x12\n" +
 	"\n" +
@@ -438,31 +512,34 @@ func file_cert_v1_cert_proto_rawDescGZIP() []byte {
 	return file_cert_v1_cert_proto_rawDescData
 }
 
-var file_cert_v1_cert_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_cert_v1_cert_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_cert_v1_cert_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_cert_v1_cert_proto_goTypes = []any{
-	(HashAlgorithm)(0),               // 0: cert.v1.HashAlgorithm
-	(*ListCertificatesRequest)(nil),  // 1: cert.v1.ListCertificatesRequest
-	(*ListCertificatesResponse)(nil), // 2: cert.v1.ListCertificatesResponse
-	(*CertificateInfo)(nil),          // 3: cert.v1.CertificateInfo
-	(*SignHashRequest)(nil),          // 4: cert.v1.SignHashRequest
-	(*SignHashResponse)(nil),         // 5: cert.v1.SignHashResponse
-	(*timestamppb.Timestamp)(nil),    // 6: google.protobuf.Timestamp
+	(RSAPadding)(0),                  // 0: cert.v1.RSAPadding
+	(HashAlgorithm)(0),               // 1: cert.v1.HashAlgorithm
+	(*ListCertificatesRequest)(nil),  // 2: cert.v1.ListCertificatesRequest
+	(*ListCertificatesResponse)(nil), // 3: cert.v1.ListCertificatesResponse
+	(*CertificateInfo)(nil),          // 4: cert.v1.CertificateInfo
+	(*SignHashRequest)(nil),          // 5: cert.v1.SignHashRequest
+	(*SignHashResponse)(nil),         // 6: cert.v1.SignHashResponse
+	(*timestamppb.Timestamp)(nil),    // 7: google.protobuf.Timestamp
 }
 var file_cert_v1_cert_proto_depIdxs = []int32{
-	3, // 0: cert.v1.ListCertificatesResponse.certificates:type_name -> cert.v1.CertificateInfo
-	6, // 1: cert.v1.CertificateInfo.not_before:type_name -> google.protobuf.Timestamp
-	6, // 2: cert.v1.CertificateInfo.not_after:type_name -> google.protobuf.Timestamp
-	0, // 3: cert.v1.SignHashRequest.hash_algorithm:type_name -> cert.v1.HashAlgorithm
-	1, // 4: cert.v1.CertService.ListCertificates:input_type -> cert.v1.ListCertificatesRequest
-	4, // 5: cert.v1.CertService.SignHash:input_type -> cert.v1.SignHashRequest
-	2, // 6: cert.v1.CertService.ListCertificates:output_type -> cert.v1.ListCertificatesResponse
-	5, // 7: cert.v1.CertService.SignHash:output_type -> cert.v1.SignHashResponse
-	6, // [6:8] is the sub-list for method output_type
-	4, // [4:6] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	4, // 0: cert.v1.ListCertificatesResponse.certificates:type_name -> cert.v1.CertificateInfo
+	7, // 1: cert.v1.CertificateInfo.not_before:type_name -> google.protobuf.Timestamp
+	7, // 2: cert.v1.CertificateInfo.not_after:type_name -> google.protobuf.Timestamp
+	1, // 3: cert.v1.SignHashRequest.hash_algorithm:type_name -> cert.v1.HashAlgorithm
+	0, // 4: cert.v1.SignHashRequest.rsa_padding:type_name -> cert.v1.RSAPadding
+	0, // 5: cert.v1.SignHashResponse.rsa_padding:type_name -> cert.v1.RSAPadding
+	2, // 6: cert.v1.CertService.ListCertificates:input_type -> cert.v1.ListCertificatesRequest
+	5, // 7: cert.v1.CertService.SignHash:input_type -> cert.v1.SignHashRequest
+	3, // 8: cert.v1.CertService.ListCertificates:output_type -> cert.v1.ListCertificatesResponse
+	6, // 9: cert.v1.CertService.SignHash:output_type -> cert.v1.SignHashResponse
+	8, // [8:10] is the sub-list for method output_type
+	6, // [6:8] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_cert_v1_cert_proto_init() }
@@ -475,7 +552,7 @@ func file_cert_v1_cert_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cert_v1_cert_proto_rawDesc), len(file_cert_v1_cert_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      2,
 			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,

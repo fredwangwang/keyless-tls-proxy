@@ -57,12 +57,17 @@ func (s *CertService) SignHash(ctx context.Context, req *certv1.SignHashRequest)
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	result, err := winstore.SignHash(req.GetThumbprint(), req.GetDigest(), hash)
+	padding, err := protoPaddingToWinstore(req.GetRsaPadding())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	result, err := winstore.SignHash(req.GetThumbprint(), req.GetDigest(), hash, padding)
 	if err != nil {
 		switch err {
 		case winstore.ErrCertificateNotFound:
 			return nil, status.Error(codes.NotFound, err.Error())
-		case winstore.ErrInvalidDigest, winstore.ErrNoPrivateKey:
+		case winstore.ErrInvalidDigest, winstore.ErrNoPrivateKey, winstore.ErrInvalidPadding:
 			return nil, status.Error(codes.InvalidArgument, err.Error())
 		default:
 			return nil, status.Errorf(codes.Internal, "sign hash: %v", err)
@@ -72,7 +77,28 @@ func (s *CertService) SignHash(ctx context.Context, req *certv1.SignHashRequest)
 	return &certv1.SignHashResponse{
 		Signature:          result.Signature,
 		SignatureAlgorithm: result.SignatureAlgorithm,
+		RsaPadding:         winstorePaddingToProto(result.Padding),
 	}, nil
+}
+
+func winstorePaddingToProto(p winstore.RSAPadding) certv1.RSAPadding {
+	switch p {
+	case winstore.RSAPaddingPSS:
+		return certv1.RSAPadding_PSS
+	default:
+		return certv1.RSAPadding_PKCS1
+	}
+}
+
+func protoPaddingToWinstore(p certv1.RSAPadding) (winstore.RSAPadding, error) {
+	switch p {
+	case certv1.RSAPadding_RSA_PADDING_UNSPECIFIED, certv1.RSAPadding_PKCS1:
+		return winstore.RSAPaddingPKCS1, nil
+	case certv1.RSAPadding_PSS:
+		return winstore.RSAPaddingPSS, nil
+	default:
+		return 0, fmt.Errorf("rsa padding must be PKCS1 or PSS")
+	}
 }
 
 func protoHashToWinstore(h certv1.HashAlgorithm) (winstore.HashAlgorithm, error) {

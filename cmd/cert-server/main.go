@@ -36,7 +36,7 @@ func main() {
 	grpcServer := grpc.NewServer(grpc.Creds(credentials.NewTLS(tlsConfig)))
 	certv1.RegisterCertServiceServer(grpcServer, server.NewCertService())
 
-	log.Printf("cert-server listening on %s (mTLS)", *addr)
+	log.Printf("cert-server listening on %s (mTLS, RSA padding: pkcs1|pss)", *addr)
 
 	go func() {
 		if err := grpcServer.Serve(lis); err != nil {
