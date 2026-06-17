@@ -21,7 +21,7 @@ const (
 	winNcryptKeySpec       = windows.CERT_NCRYPT_KEY_SPEC
 	winBCryptPadPKCS1      = 0x2
 	winBCryptPadPSS        = 0x8
-	certKeyProvInfoPropID = 22
+	certKeyProvInfoPropID = 2 // CERT_KEY_PROV_INFO_PROP_ID
 )
 
 var (

@@ -26,9 +26,10 @@ $kspSources = @(
 function Build-With-Gcc {
     param([string]$Gcc)
     Write-Host "Building KSP DLL with $Gcc..."
+    $defFile = Join-Path $Root "ksp\ksp.def"
     $sources = ($kspSources | ForEach-Object { "`"$_`"" }) -join " "
     $cmd = @"
-"$Gcc" -shared -O2 -Wall -I"$Root\ksp" -o "$dllOut" $sources "$archive" -lbcrypt -lncrypt -lcrypt32 -ladvapi32 -lws2_32 -lsecur32 -Wl,--export-all-symbols
+"$Gcc" -shared -O2 -Wall -I"$Root\ksp" -o "$dllOut" $sources "$archive" -lbcrypt -lncrypt -lcrypt32 -ladvapi32 -lws2_32 -lsecur32 -Wl,"$defFile"
 "@
     cmd /c $cmd
     return $LASTEXITCODE
@@ -80,4 +81,6 @@ Write-Host "  $dllOut"
 Write-Host "  $(Join-Path $BuildDir 'ksp-register.exe')"
 Write-Host "  $(Join-Path $BuildDir 'ksp-install-cert.exe')"
 Write-Host ""
-Write-Host "Next steps (admin): copy tpmcert_ksp.dll to C:\Windows\System32, then run ksp-register.exe -register"
+Write-Host "Next steps (run PowerShell as Administrator):"
+Write-Host "  Copy-Item -Force build\tpmcert_ksp.dll C:\Windows\System32\"
+Write-Host "  .\build\ksp-register.exe -register"

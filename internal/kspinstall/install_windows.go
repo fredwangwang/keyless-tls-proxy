@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	certKeyProvInfoPropID = 22
+	certKeyProvInfoPropID = 2 // CERT_KEY_PROV_INFO_PROP_ID
 	certStoreProvSystem   = 0x0000000A
 	certSystemStoreCurrentUser = 0x00010000
 	certStoreReadWrite    = 0x00008000

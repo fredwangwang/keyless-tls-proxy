@@ -8,6 +8,12 @@
 #include "win_ncrypt_provider.h"
 #include "tpmcert_bridge.h"
 
+#if defined(_MSC_VER) || defined(__MINGW32__) || defined(__MINGW64__)
+#define KSP_API __declspec(dllexport)
+#else
+#define KSP_API
+#endif
+
 #define KSP_INTERFACE_VERSION BCRYPT_MAKE_INTERFACE_VERSION(1, 0)
 #define KSP_PROVIDER_MAGIC 0x54504D43 /* TPMC */
 #define KSP_KEY_MAGIC      0x54504D4B /* TPMK */
@@ -91,7 +97,7 @@ SECURITY_STATUS StorageEnumKeysNext(PVOID pEnumState, NCryptKeyName** ppKeyName)
 void StorageEnumKeysEnd(PVOID pEnumState);
 SECURITY_STATUS StorageOpenKey(LPCWSTR pszKeyName, KSP_KEY** ppKey);
 
-NTSTATUS WINAPI GetKeyStorageInterface(
+KSP_API NTSTATUS WINAPI GetKeyStorageInterface(
     LPCWSTR pszProviderName,
     NCRYPT_KEY_STORAGE_FUNCTION_TABLE** ppFunctionTable,
     DWORD dwFlags);
