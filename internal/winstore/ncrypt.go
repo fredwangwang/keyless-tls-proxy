@@ -6,7 +6,6 @@ import (
 	"crypto"
 	"errors"
 	"fmt"
-	"io"
 	"math/big"
 	"unsafe"
 
@@ -21,6 +20,7 @@ const (
 	winAcquireOnlyNCrypt   = windows.CRYPT_ACQUIRE_ONLY_NCRYPT_KEY_FLAG
 	winNcryptKeySpec       = windows.CERT_NCRYPT_KEY_SPEC
 	winBCryptPadPKCS1      = 0x2
+	winBCryptPadPSS        = 0x8
 	certKeyProvInfoPropID = 22
 )
 
@@ -60,24 +60,9 @@ type pkcs1PaddingInfo struct {
 	pszAlgID *uint16
 }
 
-type ncryptSigner struct {
-	handle         uintptr
-	algorithmGroup string
-}
-
-func (s *ncryptSigner) Sign(_ io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
-	switch s.algorithmGroup {
-	case "ECDSA", "ECDH":
-		return signECDSA(s.handle, digest)
-	case "RSA":
-		algID, ok := winAlgIDs[opts.HashFunc()]
-		if !ok {
-			return nil, fmt.Errorf("unsupported hash algorithm")
-		}
-		return signRSAPKCS1(s.handle, digest, algID)
-	default:
-		return nil, errors.New("unsupported signing algorithm")
-	}
+type pssPaddingInfo struct {
+	pszAlgID *uint16
+	cbSalt   uint32
 }
 
 func acquirePrivateKey(cert *windows.CertContext) (kh uintptr, algorithmGroup string, callerMustFree bool, err error) {
@@ -104,7 +89,11 @@ func acquirePrivateKey(cert *windows.CertContext) (kh uintptr, algorithmGroup st
 	return kh, algGroup, mustFree != 0, nil
 }
 
-func signHashWithCert(cert *windows.CertContext, digest []byte, hash crypto.Hash) ([]byte, string, error) {
+func signHashWithCert(cert *windows.CertContext, digest []byte, hash crypto.Hash, padding RSAPadding) ([]byte, string, error) {
+	if padding == 0 {
+		padding = RSAPaddingPKCS1
+	}
+
 	kh, algGroup, callerMustFree, err := acquirePrivateKey(cert)
 	if err != nil {
 		return nil, "", err
@@ -113,17 +102,29 @@ func signHashWithCert(cert *windows.CertContext, digest []byte, hash crypto.Hash
 		defer freeNCryptObject(kh)
 	}
 
-	signer := &ncryptSigner{handle: kh, algorithmGroup: algGroup}
-	sig, err := signer.Sign(nil, digest, hash)
-	if err != nil {
-		return nil, "", err
+	switch algGroup {
+	case "ECDSA", "ECDH":
+		if padding == RSAPaddingPSS {
+			return nil, "", ErrInvalidPadding
+		}
+		sig, err := signECDSA(kh, digest)
+		return sig, "ECDSA", err
+	case "RSA":
+		algID, ok := winAlgIDs[hash]
+		if !ok {
+			return nil, "", fmt.Errorf("unsupported hash algorithm")
+		}
+		switch padding {
+		case RSAPaddingPSS:
+			sig, err := signRSAPSS(kh, digest, algID, uint32(len(digest)))
+			return sig, "RSASSA-PSS", err
+		default:
+			sig, err := signRSAPKCS1(kh, digest, algID)
+			return sig, "RSASSA-PKCS1-v1_5", err
+		}
+	default:
+		return nil, "", errors.New("unsupported signing algorithm")
 	}
-
-	algName := "RSASSA-PKCS1-v1_5"
-	if algGroup == "ECDSA" || algGroup == "ECDH" {
-		algName = "ECDSA"
-	}
-	return sig, algName, nil
 }
 
 func signECDSA(kh uintptr, digest []byte) ([]byte, error) {
@@ -182,6 +183,39 @@ func signRSAPKCS1(kh uintptr, digest []byte, algID *uint16) ([]byte, error) {
 		uintptr(size),
 		uintptr(unsafe.Pointer(&size)),
 		winBCryptPadPKCS1,
+	)
+	if r != 0 {
+		return nil, windows.Errno(r)
+	}
+	return sig[:size], nil
+}
+
+func signRSAPSS(kh uintptr, digest []byte, algID *uint16, saltLen uint32) ([]byte, error) {
+	padInfo := pssPaddingInfo{pszAlgID: algID, cbSalt: saltLen}
+	var size uint32
+	r, _, _ := winNCryptSignHash.Call(
+		kh,
+		uintptr(unsafe.Pointer(&padInfo)),
+		uintptr(unsafe.Pointer(&digest[0])),
+		uintptr(len(digest)),
+		0, 0,
+		uintptr(unsafe.Pointer(&size)),
+		winBCryptPadPSS,
+	)
+	if r != 0 {
+		return nil, windows.Errno(r)
+	}
+
+	sig := make([]byte, size)
+	r, _, _ = winNCryptSignHash.Call(
+		kh,
+		uintptr(unsafe.Pointer(&padInfo)),
+		uintptr(unsafe.Pointer(&digest[0])),
+		uintptr(len(digest)),
+		uintptr(unsafe.Pointer(&sig[0])),
+		uintptr(size),
+		uintptr(unsafe.Pointer(&size)),
+		winBCryptPadPSS,
 	)
 	if r != 0 {
 		return nil, windows.Errno(r)

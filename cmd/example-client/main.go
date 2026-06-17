@@ -27,6 +27,7 @@ func main() {
 	cert := flag.String("cert", "certs/client.crt", "client TLS certificate")
 	key := flag.String("key", "certs/client.key", "client TLS private key")
 	message := flag.String("message", "", "message to hash and sign (prompts if empty)")
+	padding := flag.String("padding", "", "RSA padding: pkcs1 or pss (prompts if empty)")
 	flag.Parse()
 
 	host, _, err := net.SplitHostPort(*addr)
@@ -99,11 +100,17 @@ func main() {
 		fatal(fmt.Errorf("message must not be empty"))
 	}
 
+	rsaPadding, err := resolvePadding(reader, *padding)
+	if err != nil {
+		fatal(err)
+	}
+
 	digest := sha256.Sum256([]byte(text))
 	signResp, err := client.SignHash(ctx, &certv1.SignHashRequest{
 		Thumbprint:    selected.Thumbprint,
 		Digest:        digest[:],
 		HashAlgorithm: certv1.HashAlgorithm_SHA256,
+		RsaPadding:    rsaPadding,
 	})
 	if err != nil {
 		fatal(err)
@@ -112,9 +119,30 @@ func main() {
 	fmt.Println()
 	fmt.Printf("Certificate: %s\n", selected.Subject)
 	fmt.Printf("Digest (SHA-256): %s\n", hex.EncodeToString(digest[:]))
+	fmt.Printf("RSA padding: %s\n", signResp.RsaPadding.String())
 	fmt.Printf("Signature algorithm: %s\n", signResp.SignatureAlgorithm)
 	fmt.Printf("Signature (base64): %s\n", base64.StdEncoding.EncodeToString(signResp.Signature))
 	fmt.Printf("Signature (hex): %s\n", hex.EncodeToString(signResp.Signature))
+}
+
+func resolvePadding(reader *bufio.Reader, flagValue string) (certv1.RSAPadding, error) {
+	value := strings.ToLower(strings.TrimSpace(flagValue))
+	if value == "" {
+		fmt.Print("RSA padding [pkcs1/pss] (default pkcs1): ")
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			return certv1.RSAPadding_RSA_PADDING_UNSPECIFIED, err
+		}
+		value = strings.ToLower(strings.TrimSpace(line))
+	}
+	switch value {
+	case "", "pkcs1", "pkcs1v15", "pkcs#1":
+		return certv1.RSAPadding_PKCS1, nil
+	case "pss", "rsapss", "rsa-pss":
+		return certv1.RSAPadding_PSS, nil
+	default:
+		return certv1.RSAPadding_RSA_PADDING_UNSPECIFIED, fmt.Errorf("padding must be pkcs1 or pss")
+	}
 }
 
 func readChoice(reader *bufio.Reader, max int) (int, error) {

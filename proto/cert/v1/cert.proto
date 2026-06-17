@@ -34,11 +34,19 @@ message SignHashRequest {
   string thumbprint = 1;
   bytes digest = 2;
   HashAlgorithm hash_algorithm = 3;
+  RSAPadding rsa_padding = 4;
+}
+
+enum RSAPadding {
+  RSA_PADDING_UNSPECIFIED = 0;
+  PKCS1 = 1;
+  PSS = 2;
 }
 
 message SignHashResponse {
   bytes signature = 1;
   string signature_algorithm = 2;
+  RSAPadding rsa_padding = 3;
 }
 
 enum HashAlgorithm {

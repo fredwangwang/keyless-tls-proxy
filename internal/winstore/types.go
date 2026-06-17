@@ -11,6 +11,7 @@ var (
 	ErrCertificateNotFound = errors.New("certificate not found")
 	ErrNoPrivateKey        = errors.New("certificate has no accessible private key")
 	ErrInvalidDigest       = errors.New("digest length does not match hash algorithm")
+	ErrInvalidPadding      = errors.New("PSS padding is only supported for RSA keys")
 )
 
 // CertificateInfo describes a certificate in the Windows MY store.
@@ -62,8 +63,17 @@ func (h HashAlgorithm) DigestSize() (int, error) {
 	}
 }
 
+// RSAPadding selects the RSA signature padding scheme.
+type RSAPadding int
+
+const (
+	RSAPaddingPKCS1 RSAPadding = 1
+	RSAPaddingPSS   RSAPadding = 2
+)
+
 // SignResult contains the signature bytes and algorithm name.
 type SignResult struct {
-	Signature           []byte
-	SignatureAlgorithm  string
+	Signature          []byte
+	SignatureAlgorithm string
+	Padding            RSAPadding
 }
