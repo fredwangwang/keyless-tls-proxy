@@ -62,11 +62,17 @@ The client will:
 | `cmd/cert-server/` | gRPC server entrypoint |
 | `cmd/example-client/` | Interactive example client |
 | `cmd/gencerts/` | Dev mTLS CA/server/client certificate generator |
+| `cmd/ksp-register/` | Register/unregister the CNG KSP (admin) |
+| `cmd/ksp-install-cert/` | Install a remote cert into MY store and bind to the KSP |
+| `ksp/` | CNG Key Storage Provider DLL sources |
+| `internal/kspclient/` | gRPC client library for the KSP bridge |
+| `internal/kspbridge/` | Go c-archive exports linked into the KSP DLL |
 | `scripts/gen-proto.ps1` | Regenerate protobuf code |
+| `scripts/build-ksp.ps1` | Build KSP DLL and helper tools |
 
 ## gRPC API
 
-- **ListCertificates** — returns thumbprint, subject, issuer, validity, key type/size, TPM flag, and provider name
+- **ListCertificates** — returns thumbprint, subject, issuer, validity, key type/size, TPM flag, provider name, and certificate DER
 - **SignHash** — signs a pre-computed digest (SHA-256, SHA-384, or SHA-512) with the certificate identified by thumbprint; RSA keys support `pkcs1` (default) or `pss` padding via `rsa_padding`
 
 ## TPM notes
@@ -94,3 +100,74 @@ go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 - mTLS transport certs (`cmd/gencerts`) are separate from Windows signing keys
 - The server defaults to `127.0.0.1` — bind to a broader interface only in trusted networks
 - `certs/` is gitignored; regenerate for each environment
+
+## CNG Key Storage Provider (remote client)
+
+The KSP lets Windows apps on a **client machine** use TPM-backed keys on the cert-server host via NCrypt/CryptoAPI. Private keys never leave the server; the KSP forwards signing to cert-server over mTLS gRPC.
+
+### Build
+
+Requires Go 1.26+, Visual Studio C++ build tools, and CGO (`CGO_ENABLED=1`):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/build-ksp.ps1
+```
+
+Outputs under `build/`:
+
+- `tpmcert_ksp.dll` — CNG Key Storage Provider
+- `ksp-register.exe` — register/unregister the provider (admin)
+- `ksp-install-cert.exe` — install and bind a remote certificate
+
+### Install workflow
+
+1. Copy `build\tpmcert_ksp.dll` to `C:\Windows\System32`
+2. Register the provider (elevated):
+
+```powershell
+build\ksp-register.exe -register
+```
+
+3. Install a remote certificate binding (uses the same mTLS flags as the example client):
+
+```powershell
+build\ksp-install-cert.exe `
+  -addr server.example.com:50051 `
+  -ca certs\ca.crt `
+  -cert certs\client.crt `
+  -key certs\client.key
+```
+
+This writes `%ProgramData%\tpm-cert-ksp\config.json`, prompts you to pick a certificate, installs it into **Current User\MY**, and records the thumbprint in `%ProgramData%\tpm-cert-ksp\installed.json`.
+
+4. Windows apps can now acquire the private key via `CryptAcquireCertificatePrivateKey`; signing is delegated to cert-server.
+
+### KSP configuration
+
+Default config path: `%ProgramData%\tpm-cert-ksp\config.json`
+
+```json
+{
+  "addr": "server.example.com:50051",
+  "ca": "C:\\path\\ca.crt",
+  "cert": "C:\\path\\client.crt",
+  "key": "C:\\path\\client.key"
+}
+```
+
+Only thumbprints listed in `installed.json` are exposed as KSP keys.
+
+### Manage bindings
+
+```powershell
+build\ksp-install-cert.exe -list
+build\ksp-install-cert.exe -remove <THUMBPRINT>
+build\ksp-register.exe -unregister
+```
+
+### KSP limitations (v1)
+
+- Windows x64 only
+- RSA keys only (PKCS#1 and PSS signing)
+- No local key creation or import
+- Keys are unusable until explicitly installed with `ksp-install-cert`

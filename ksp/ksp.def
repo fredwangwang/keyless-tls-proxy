@@ -1,0 +1,3 @@
+LIBRARY tpmcert_ksp
+EXPORTS
+    GetKeyStorageInterface
