@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package cert.v1;
+
+option go_package = "tpm-cert-proxy/gen/cert/v1;certv1";
+
+import "google/protobuf/timestamp.proto";
+
+service CertService {
+  rpc ListCertificates(ListCertificatesRequest) returns (ListCertificatesResponse);
+  rpc SignHash(SignHashRequest) returns (SignHashResponse);
+}
+
+message ListCertificatesRequest {}
+
+message ListCertificatesResponse {
+  repeated CertificateInfo certificates = 1;
+}
+
+message CertificateInfo {
+  string thumbprint = 1;
+  string subject = 2;
+  string issuer = 3;
+  google.protobuf.Timestamp not_before = 4;
+  google.protobuf.Timestamp not_after = 5;
+  string key_algorithm = 6;
+  int32 key_size = 7;
+  bool has_private_key = 8;
+  bool is_tpm = 9;
+  string provider_name = 10;
+}
+
+message SignHashRequest {
+  string thumbprint = 1;
+  bytes digest = 2;
+  HashAlgorithm hash_algorithm = 3;
+}
+
+message SignHashResponse {
+  bytes signature = 1;
+  string signature_algorithm = 2;
+}
+
+enum HashAlgorithm {
+  HASH_ALGORITHM_UNSPECIFIED = 0;
+  SHA256 = 1;
+  SHA384 = 2;
+  SHA512 = 3;
+}
