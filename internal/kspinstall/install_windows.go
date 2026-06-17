@@ -17,7 +17,7 @@ const (
 	certKeyProvInfoPropID = 2 // CERT_KEY_PROV_INFO_PROP_ID
 	certStoreProvSystem   = 0x0000000A
 	certSystemStoreCurrentUser = 0x00010000
-	certStoreReadWrite    = 0x00008000
+	certStoreReadWrite    = 0 // 0x00008000 is CERT_STORE_READONLY_FLAG, we use 0 to open the store with read-write access
 	certStoreAddReplace   = 3
 	atKeyExchange         = 1
 	atSignature           = 2
