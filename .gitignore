@@ -1,0 +1,4 @@
+certs/
+tools/protoc/
+tools/protoc.zip
+*.exe
