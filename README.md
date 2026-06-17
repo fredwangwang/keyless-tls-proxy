@@ -69,6 +69,7 @@ The client will:
 | `internal/kspbridge/` | Go c-archive exports linked into the KSP DLL |
 | `scripts/gen-proto.ps1` | Regenerate protobuf code |
 | `scripts/build-ksp.ps1` | Build KSP DLL and helper tools |
+| `ref/BlackICE_Connect/` | Git submodule — upstream Gradiant CNG KSP reference |
 
 ## gRPC API
 
