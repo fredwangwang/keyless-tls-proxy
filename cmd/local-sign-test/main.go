@@ -2,70 +2,36 @@ package main
 
 import (
 	"bufio"
-	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"flag"
 	"fmt"
-	"net"
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
-	certv1 "tpm-cert-proxy/gen/cert/v1"
-	"tpm-cert-proxy/internal/tlsutil"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
+	"tpm-cert-proxy/internal/winstore"
 )
 
 func main() {
-	addr := flag.String("addr", "127.0.0.1:50051", "gRPC server address")
-	ca := flag.String("ca", "certs/ca.crt", "CA certificate")
-	cert := flag.String("cert", "certs/client.crt", "client TLS certificate")
-	key := flag.String("key", "certs/client.key", "client TLS private key")
 	message := flag.String("message", "", "message to hash and sign (prompts if empty)")
 	padding := flag.String("padding", "", "RSA padding: pkcs1 or pss (prompts if empty)")
 	flag.Parse()
 
-	host, _, err := net.SplitHostPort(*addr)
-	if err != nil {
-		// Allow host-only addresses for default local usage.
-		host = *addr
-	}
-
-	tlsConfig, err := tlsutil.LoadClientTLSConfig(*ca, *cert, *key, host)
+	certs, err := winstore.ListCertificates()
 	if err != nil {
 		fatal(err)
 	}
 
-	conn, err := grpc.NewClient(
-		*addr,
-		grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
-	)
-	if err != nil {
-		fatal(err)
-	}
-	defer conn.Close()
-
-	client := certv1.NewCertServiceClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	resp, err := client.ListCertificates(ctx, &certv1.ListCertificatesRequest{})
-	if err != nil {
-		fatal(err)
-	}
-	if len(resp.Certificates) == 0 {
-		fatal(fmt.Errorf("no certificates with private keys found"))
+	if len(certs) == 0 {
+		fatal(fmt.Errorf("no certificates with private keys found in the Windows MY store"))
 	}
 
 	fmt.Println("Available certificates:")
-	for i, c := range resp.Certificates {
+	for i, c := range certs {
 		tpm := "no"
-		if c.IsTpm {
+		if c.IsTPM {
 			tpm = "yes"
 		}
 		fmt.Printf(
@@ -81,11 +47,11 @@ func main() {
 	}
 
 	reader := bufio.NewReader(os.Stdin)
-	idx, err := readChoice(reader, len(resp.Certificates))
+	idx, err := readChoice(reader, len(certs))
 	if err != nil {
 		fatal(err)
 	}
-	selected := resp.Certificates[idx]
+	selected := certs[idx]
 
 	text := *message
 	if text == "" {
@@ -106,12 +72,12 @@ func main() {
 	}
 
 	digest := sha256.Sum256([]byte(text))
-	signResp, err := client.SignHash(ctx, &certv1.SignHashRequest{
-		Thumbprint:    selected.Thumbprint,
-		Digest:        digest[:],
-		HashAlgorithm: certv1.HashAlgorithm_SHA256,
-		RsaPadding:    rsaPadding,
-	})
+	signResp, err := winstore.SignHash(
+		selected.Thumbprint,
+		digest[:],
+		winstore.HashSHA256,
+		rsaPadding,
+	)
 	if err != nil {
 		fatal(err)
 	}
@@ -119,29 +85,39 @@ func main() {
 	fmt.Println()
 	fmt.Printf("Certificate: %s\n", selected.Subject)
 	fmt.Printf("Digest (SHA-256): %s\n", hex.EncodeToString(digest[:]))
-	fmt.Printf("RSA padding: %s\n", signResp.RsaPadding.String())
+
+	var paddingStr string
+	switch signResp.Padding {
+	case winstore.RSAPaddingPKCS1:
+		paddingStr = "PKCS1"
+	case winstore.RSAPaddingPSS:
+		paddingStr = "PSS"
+	default:
+		paddingStr = "UNSPECIFIED"
+	}
+	fmt.Printf("RSA padding: %s\n", paddingStr)
 	fmt.Printf("Signature algorithm: %s\n", signResp.SignatureAlgorithm)
 	fmt.Printf("Signature (base64): %s\n", base64.StdEncoding.EncodeToString(signResp.Signature))
 	fmt.Printf("Signature (hex): %s\n", hex.EncodeToString(signResp.Signature))
 }
 
-func resolvePadding(reader *bufio.Reader, flagValue string) (certv1.RSAPadding, error) {
+func resolvePadding(reader *bufio.Reader, flagValue string) (winstore.RSAPadding, error) {
 	value := strings.ToLower(strings.TrimSpace(flagValue))
 	if value == "" {
 		fmt.Print("RSA padding [pkcs1/pss] (default pkcs1): ")
 		line, err := reader.ReadString('\n')
 		if err != nil {
-			return certv1.RSAPadding_RSA_PADDING_UNSPECIFIED, err
+			return 0, err
 		}
 		value = strings.ToLower(strings.TrimSpace(line))
 	}
 	switch value {
 	case "", "pkcs1", "pkcs1v15", "pkcs#1":
-		return certv1.RSAPadding_PKCS1, nil
+		return winstore.RSAPaddingPKCS1, nil
 	case "pss", "rsapss", "rsa-pss":
-		return certv1.RSAPadding_PSS, nil
+		return winstore.RSAPaddingPSS, nil
 	default:
-		return certv1.RSAPadding_RSA_PADDING_UNSPECIFIED, fmt.Errorf("padding must be pkcs1 or pss")
+		return 0, fmt.Errorf("padding must be pkcs1 or pss")
 	}
 }
 

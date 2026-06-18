@@ -39,7 +39,7 @@ flowchart LR
     MY[CurrentUser MY store]
     Manifest[installed.json manifest]
     App[Windows app / CryptoAPI]
-    KSP[tpmcert_ksp.dll]
+    KSP[fredprx_ksp.dll]
     Bridge[Go c-archive in DLL]
     Install -->|ListCertificates pick one| Bridge
     Install -->|CertAdd + KEY_PROV_INFO| MY
@@ -68,11 +68,11 @@ flowchart LR
 
 **Why not fork all of BlackICE?** The upstream KSP pulls OpenSSL, libcurl, Azure REST, PIN auth, and encrypted config ([`CNG_Connector.vcxproj`](BlackICE_Connect/BIC_CNG/CNG_Connector/CNG_Connector.vcxproj)). We keep only the NCrypt boilerplate (~`KSP.c`, `KSPHelper.c`, `KSP.def`) and replace [`CNGStorage.c`](BlackICE_Connect/Modules/AKV_Module/src/CNGStorage.c) with a thin `tpmcert_storage.c` that calls the Go bridge.
 
-**Why c-archive over two DLLs?** NCrypt loads the KSP into crypto processes; a single `tpmcert_ksp.dll` avoids `LoadLibrary` path issues. Build with:
+**Why c-archive over two DLLs?** NCrypt loads the KSP into crypto processes; a single `fredprx_ksp.dll` avoids `LoadLibrary` path issues. Build with:
 
 ```powershell
 go build -buildmode=c-archive -o build/tpmcertclient.a ./internal/kspclient
-cl /LD ksp\*.c build/tpmcertclient.a ... /Fe:build/tpmcert_ksp.dll
+cl /LD ksp\*.c build/tpmcertclient.a ... /Fe:build/fredprx_ksp.dll
 ```
 
 ## API / proto extension (required for public-key export)
@@ -105,7 +105,7 @@ void tpmcert_free(void* p);
 
 Implementation reuses example-client flow:
 
-- Config JSON (default `%ProgramData%\tpm-cert-ksp\config.json`):
+- Config JSON (default `%ProgramData%\fredprx-ksp\config.json`):
 
 ```json
 {
@@ -118,7 +118,7 @@ Implementation reuses example-client flow:
 
 - Persistent gRPC connection with mutex (KSP may be called from multiple threads)
 - `ListCertificates` cached briefly (e.g. 30s) to avoid hammering server on `NCryptEnumKeys`
-- **Installed-keys manifest** at `%ProgramData%\tpm-cert-ksp\installed.json` — list of thumbprints the user chose to bind locally (written by install utility, read by KSP)
+- **Installed-keys manifest** at `%ProgramData%\fredprx-ksp\installed.json` — list of thumbprints the user chose to bind locally (written by install utility, read by KSP)
 - `KSPEnumKeys` / `KSPOpenKey`: only expose thumbprints present in the manifest (strict mode — keys are not usable until installed)
 - Key identity: **uppercase SHA-1 thumbprint** (matches server [`SignHash`](internal/server/service.go) lookup and `CERT_KEY_PROV_INFO.pwszContainerName`)
 - Hash mapping: `SHA256/384/512` ↔ proto enums; padding: `BCRYPT_PAD_PKCS1` / `BCRYPT_PAD_PSS` ↔ proto `PKCS1`/`PSS`
@@ -149,8 +149,8 @@ Adapt from BlackICE (Mozilla Public License — retain license headers):
 | `KSPCreatePersistedKey`, `KSPImportKey`, `KSPEncrypt`, `KSPDecrypt`, etc. | `NTE_NOT_SUPPORTED` |
 | `KSPVerifySignature` | Local verify using cached public blob via `BCryptVerifySignature` (no round-trip) |
 
-Provider name: **`TPM Certificate Key Storage Provider`**  
-DLL name registered with CNG: **`tpmcert_ksp.dll`**
+Provider name: **`Fred Proxy Key Storage Provider`**  
+DLL name registered with CNG: **`fredprx_ksp.dll`**
 
 ## Certificate install utility: `cmd/ksp-install-cert`
 
@@ -171,13 +171,13 @@ ksp-install-cert -remove <thumbprint>   # uninstall cert + remove from manifest
 
 | Field | Value |
 |-------|-------|
-| `pwszProvName` | `TPM Certificate Key Storage Provider` |
+| `pwszProvName` | `Fred Proxy Key Storage Provider` |
 | `pwszContainerName` | uppercase SHA-1 thumbprint |
 | `dwProvType` | `0` (CNG KSP) |
 | `dwKeySpec` | `AT_KEYEXCHANGE` or `AT_SIGNATURE` inferred from cert EKU / key usage |
 | `dwFlags` | `0` (user store) |
 
-5. Append thumbprint to `%ProgramData%\tpm-cert-ksp\installed.json` (dedupe; store subject + installed-at for `-list` display)
+5. Append thumbprint to `%ProgramData%\fredprx-ksp\installed.json` (dedupe; store subject + installed-at for `-list` display)
 6. Print confirmation: thumbprint, subject, store path
 
 ### Implementation: `internal/kspinstall`
@@ -195,7 +195,7 @@ After install, Windows apps resolve the private key via:
 ```
 CryptAcquireCertificatePrivateKey(cert)
   → reads CERT_KEY_PROV_INFO
-  → NCryptOpenStorageProvider("TPM Certificate Key Storage Provider")
+  → NCryptOpenStorageProvider("Fred Proxy Key Storage Provider")
   → NCryptOpenKey(container = thumbprint)
   → KSP KSPOpenKey → remote SignHash
 ```
@@ -214,7 +214,7 @@ ksp-register -register | -unregister | -enum
 
 - Calls `BCryptRegisterProvider`, `BCryptAddContextFunction`, `BCryptAddContextFunctionProvider`
 - **Requires elevated admin**
-- Post-register: copy `build/tpmcert_ksp.dll` to `C:\Windows\System32\` (or document install path — CNG resolves by filename)
+- Post-register: copy `build/fredprx_ksp.dll` to `C:\Windows\System32\` (or document install path — CNG resolves by filename)
 
 ## Build script: `scripts/build-ksp.ps1`
 
@@ -225,7 +225,7 @@ Terminal-only build (no VS GUI required):
 3. `cl /LD /O2 ksp\*.c` link `tpmcertclient.a`, `bcrypt.lib`, `ncrypt.lib`, `crypt32.lib`
 4. `go build -o build/ksp-register.exe ./cmd/ksp-register`
 5. `go build -o build/ksp-install-cert.exe ./cmd/ksp-install-cert`
-6. Output: `build/tpmcert_ksp.dll`, `build/ksp-register.exe`, `build/ksp-install-cert.exe`
+6. Output: `build/fredprx_ksp.dll`, `build/ksp-register.exe`, `build/ksp-install-cert.exe`
 
 Add `build/` to [`.gitignore`](.gitignore).
 
@@ -246,7 +246,7 @@ certutil -user -store My
 5. Verify KSP sees only installed key:
 
 ```powershell
-certutil -csp "TPM Certificate Key Storage Provider" -key
+certutil -csp "Fred Proxy Key Storage Provider" -key
 ```
 
 6. **End-to-end sign via cert store** (not raw NCrypt thumbprint): small test that loads cert from MY by subject, calls `CryptAcquireCertificatePrivateKey` + `NCryptSignHash`; compare signature with `example-client` for same digest

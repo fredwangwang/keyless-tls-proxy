@@ -17,7 +17,7 @@ go build -o (Join-Path $BuildDir "ksp-install-cert.exe") ./cmd/ksp-install-cert
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 $archive = Join-Path $BuildDir "tpmcertclient.a"
-$dllOut = Join-Path $BuildDir "tpmcert_ksp.dll"
+$dllOut = Join-Path $BuildDir "fredprx_ksp.dll"
 $kspSources = @(
     (Join-Path $Root "ksp\ksp.c"),
     (Join-Path $Root "ksp\tpmcert_storage.c")
@@ -82,5 +82,5 @@ Write-Host "  $(Join-Path $BuildDir 'ksp-register.exe')"
 Write-Host "  $(Join-Path $BuildDir 'ksp-install-cert.exe')"
 Write-Host ""
 Write-Host "Next steps (run PowerShell as Administrator):"
-Write-Host "  Copy-Item -Force build\tpmcert_ksp.dll C:\Windows\System32\"
-Write-Host "  .\build\ksp-register.exe -register"
+Write-Host "  Copy-Item -Force '$dllOut' C:\Windows\System32\"
+Write-Host "  &'$(Join-Path $BuildDir 'ksp-register.exe')' -register"

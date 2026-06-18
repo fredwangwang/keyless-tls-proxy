@@ -6,9 +6,9 @@ import (
 )
 
 const (
-	ProviderName = "TPM Certificate Key Storage Provider"
-	KSPLibrary   = "tpmcert_ksp.dll"
-	ConfigDir    = "tpm-cert-ksp"
+	ProviderName = "Fred Proxy Key Storage Provider"
+	KSPLibrary   = "fredprx_ksp.dll"
+	ConfigDir    = "fredprx-ksp"
 )
 
 func DataDir() string {

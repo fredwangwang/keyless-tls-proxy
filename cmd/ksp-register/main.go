@@ -20,12 +20,12 @@ func main() {
 		if err := kspregister.Register(); err != nil {
 			fatal(err)
 		}
-		fmt.Println("Registered TPM Certificate Key Storage Provider.")
+		fmt.Println("Registered Fred Proxy Key Storage Provider.")
 	case "-unregister", "unregister":
 		if err := kspregister.Unregister(); err != nil {
 			fatal(err)
 		}
-		fmt.Println("Unregistered TPM Certificate Key Storage Provider.")
+		fmt.Println("Unregistered Fred Proxy Key Storage Provider.")
 	case "-enum", "enum":
 		providers, err := kspregister.EnumProviders()
 		if err != nil {
