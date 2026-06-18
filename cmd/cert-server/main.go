@@ -21,6 +21,7 @@ func main() {
 	ca := flag.String("ca", "certs/ca.crt", "CA certificate for client verification")
 	cert := flag.String("cert", "certs/server.crt", "server TLS certificate")
 	key := flag.String("key", "certs/server.key", "server TLS private key")
+	verbose := flag.Bool("verbose", false, "log each gRPC call with request/response details")
 	flag.Parse()
 
 	tlsConfig, err := tlsutil.LoadServerTLSConfig(*ca, *cert, *key)
@@ -33,10 +34,17 @@ func main() {
 		log.Fatalf("listen: %v", err)
 	}
 
-	grpcServer := grpc.NewServer(grpc.Creds(credentials.NewTLS(tlsConfig)))
+	grpcServer := grpc.NewServer(
+		grpc.Creds(credentials.NewTLS(tlsConfig)),
+		grpc.UnaryInterceptor(server.VerboseUnaryInterceptor(*verbose)),
+	)
 	certv1.RegisterCertServiceServer(grpcServer, server.NewCertService())
 
-	log.Printf("cert-server listening on %s (mTLS, RSA padding: pkcs1|pss)", *addr)
+	if *verbose {
+		log.Printf("cert-server listening on %s (mTLS, RSA padding: pkcs1|pss, verbose logging enabled)", *addr)
+	} else {
+		log.Printf("cert-server listening on %s (mTLS, RSA padding: pkcs1|pss)", *addr)
+	}
 
 	go func() {
 		if err := grpcServer.Serve(lis); err != nil {
