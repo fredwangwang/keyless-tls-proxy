@@ -153,13 +153,13 @@ powershell -ExecutionPolicy Bypass -File scripts/build-ksp.ps1
 
 Outputs under `build/`:
 
-- `tpmcert_ksp.dll` — CNG Key Storage Provider
+- `fredprx_ksp.dll` — CNG Key Storage Provider
 - `ksp-register.exe` — register/unregister the provider (admin)
 - `ksp-install-cert.exe` — install and bind a remote certificate
 
 ### Install workflow
 
-1. Copy `build\tpmcert_ksp.dll` to `C:\Windows\System32`
+1. Copy `build\fredprx_ksp.dll` to `C:\Windows\System32`
 2. Register the provider (elevated):
 
 ```powershell
@@ -176,13 +176,13 @@ build\ksp-install-cert.exe `
   -key certs\client.key
 ```
 
-This writes `%ProgramData%\tpm-cert-ksp\config.json`, prompts you to pick a certificate, installs it into **Current User\MY**, and records the thumbprint in `%ProgramData%\tpm-cert-ksp\installed.json`.
+This writes `%ProgramData%\fredprx-ksp\config.json`, prompts you to pick a certificate, installs it into **Current User\MY**, and records the thumbprint in `%ProgramData%\fredprx-ksp\installed.json`.
 
 4. Windows apps can now acquire the private key via `CryptAcquireCertificatePrivateKey`; signing is delegated to cert-server.
 
 ### KSP configuration
 
-Default config path: `%ProgramData%\tpm-cert-ksp\config.json`
+Default config path: `%ProgramData%\fredprx-ksp\config.json`
 
 ```json
 {

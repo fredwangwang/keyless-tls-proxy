@@ -30,7 +30,7 @@ static CRYPT_INTERFACE_REG tpmcertAlgorithmClass = {
 static PCRYPT_INTERFACE_REG tpmcertAlgorithmClasses[1] = { &tpmcertAlgorithmClass };
 
 static CRYPT_IMAGE_REG tpmcertKspImage = {
-    (PWSTR)L"tpmcert_ksp.dll",
+    (PWSTR)L"fredprx_ksp.dll",
     1,
     tpmcertAlgorithmClasses
 };
@@ -44,7 +44,7 @@ static CRYPT_PROVIDER_REG tpmcertKspProvider = {
 
 static NTSTATUS tpmcertRegisterProvider(void) {
     return BCryptRegisterProvider(
-        L"TPM Certificate Key Storage Provider",
+        L"Fred Proxy Key Storage Provider",
         0,
         &tpmcertKspProvider);
 }
@@ -64,7 +64,7 @@ static NTSTATUS tpmcertAddContextFunctionProvider(void) {
         NULL,
         NCRYPT_KEY_STORAGE_INTERFACE,
         NCRYPT_KEY_STORAGE_ALGORITHM,
-        L"TPM Certificate Key Storage Provider",
+        L"Fred Proxy Key Storage Provider",
         CRYPT_PRIORITY_TOP);
 }
 
@@ -74,11 +74,11 @@ static NTSTATUS tpmcertRemoveContextFunctionProvider(void) {
         NULL,
         NCRYPT_KEY_STORAGE_INTERFACE,
         NCRYPT_KEY_STORAGE_ALGORITHM,
-        L"TPM Certificate Key Storage Provider");
+        L"Fred Proxy Key Storage Provider");
 }
 
 static NTSTATUS tpmcertUnregisterProvider(void) {
-    return BCryptUnregisterProvider(L"TPM Certificate Key Storage Provider");
+    return BCryptUnregisterProvider(L"Fred Proxy Key Storage Provider");
 }
 */
 import "C"

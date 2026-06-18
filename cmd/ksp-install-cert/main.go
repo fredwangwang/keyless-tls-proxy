@@ -16,6 +16,7 @@ import (
 	"tpm-cert-proxy/internal/kspcommon"
 	"tpm-cert-proxy/internal/kspinstall"
 	"tpm-cert-proxy/internal/kspmanifest"
+	"tpm-cert-proxy/internal/server"
 	"tpm-cert-proxy/internal/tlsutil"
 
 	"google.golang.org/grpc"
@@ -23,7 +24,7 @@ import (
 )
 
 func main() {
-	addr := flag.String("addr", "127.0.0.1:50051", "gRPC server address")
+	addr := flag.String("addr", "", "gRPC server address")
 	ca := flag.String("ca", "certs/ca.crt", "CA certificate")
 	cert := flag.String("cert", "certs/client.crt", "client TLS certificate")
 	key := flag.String("key", "certs/client.key", "client TLS private key")
@@ -45,8 +46,89 @@ func main() {
 		return
 	}
 
+	resolvedAddr := *addr
+	if resolvedAddr == "" {
+		reader := bufio.NewReader(os.Stdin)
+		for {
+			fmt.Print("Enter server address (IP/hostname:port) or press Enter to discover: ")
+			input, err := reader.ReadString('\n')
+			if err != nil {
+				fatal(err)
+			}
+			input = strings.TrimSpace(input)
+			if input == "" {
+				fmt.Println("Discovering servers on local network...")
+				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+				servers, err := server.DiscoverServers(ctx, server.DiscoverClientConfig{Timeout: 3 * time.Second})
+				cancel()
+				if err != nil {
+					fmt.Printf("Discovery failed: %v\n", err)
+					continue
+				}
+				if len(servers) == 0 {
+					fmt.Println("No servers discovered. Please enter address manually.")
+					continue
+				}
+				fmt.Println("Discovered servers:")
+				for i, s := range servers {
+					fmt.Printf("  [%d] %s (%s) version %s\n", i+1, s.Hostname, s.GRPCAddr, s.Version)
+				}
+				var choice int
+				for {
+					fmt.Printf("Select server (1-%d): ", len(servers))
+					choiceStr, err := reader.ReadString('\n')
+					if err != nil {
+						fatal(err)
+					}
+					choiceStr = strings.TrimSpace(choiceStr)
+					choiceIdx, err := strconv.Atoi(choiceStr)
+					if err != nil || choiceIdx < 1 || choiceIdx > len(servers) {
+						fmt.Println("Invalid selection, try again.")
+						continue
+					}
+					choice = choiceIdx - 1
+					break
+				}
+				selected := servers[choice]
+				host, port, err := net.SplitHostPort(selected.GRPCAddr)
+				if err != nil {
+					host = selected.SourceIP
+					port = "50051"
+				}
+				if host == "" {
+					host = selected.SourceIP
+				}
+				resolvedAddr = resolveOrTestHostname(host, port, selected.Hostname)
+				fmt.Printf("Selected server: %s\n", resolvedAddr)
+				break
+			} else {
+				host, port, err := net.SplitHostPort(input)
+				if err != nil {
+					host = input
+					if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
+						host = host[1 : len(host)-1]
+					}
+					port = "50051"
+				}
+				resolvedAddr = resolveOrTestHostname(host, port, "")
+				fmt.Printf("Using server: %s\n", resolvedAddr)
+				break
+			}
+		}
+	} else {
+		host, port, err := net.SplitHostPort(resolvedAddr)
+		if err != nil {
+			host = resolvedAddr
+			if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
+				host = host[1 : len(host)-1]
+			}
+			port = "50051"
+		}
+		resolvedAddr = resolveOrTestHostname(host, port, "")
+	}
+
 	cfg := &kspclient.Config{
-		Addr: *addr,
+		Addr: resolvedAddr,
 		CA:   *ca,
 		Cert: *cert,
 		Key:  *key,
@@ -169,4 +251,32 @@ func readChoice(reader *bufio.Reader, max int) (int, error) {
 func fatal(err error) {
 	fmt.Fprintf(os.Stderr, "error: %v\n", err)
 	os.Exit(1)
+}
+
+func resolveOrTestHostname(host string, port string, hostname string) string {
+	// If a hostname is provided (e.g. from discovery), check if it's reachable.
+	if hostname != "" {
+		testAddr := net.JoinHostPort(hostname, port)
+		if conn, err := net.DialTimeout("tcp", testAddr, 2*time.Second); err == nil {
+			conn.Close()
+			return testAddr
+		}
+	}
+	// If no hostname, or if hostname isn't reachable, check if `host` is an IP.
+	// If it is an IP, we can try reverse DNS lookup.
+	ip := net.ParseIP(host)
+	if ip != nil {
+		names, err := net.LookupAddr(host)
+		if err == nil && len(names) > 0 {
+			for _, name := range names {
+				name = strings.TrimSuffix(name, ".")
+				testAddr := net.JoinHostPort(name, port)
+				if conn, err := net.DialTimeout("tcp", testAddr, 2*time.Second); err == nil {
+					conn.Close()
+					return testAddr
+				}
+			}
+		}
+	}
+	return net.JoinHostPort(host, port)
 }

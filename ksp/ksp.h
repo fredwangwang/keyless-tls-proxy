@@ -26,7 +26,7 @@
 #define STATUS_INVALID_PARAMETER ((NTSTATUS)0xC000000DL)
 #endif
 
-#define TPMCERT_KSP_PROVIDER_NAME L"TPM Certificate Key Storage Provider"
+#define TPMCERT_KSP_PROVIDER_NAME L"Fred Proxy Key Storage Provider"
 
 #ifndef NT_SUCCESS
 #define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
