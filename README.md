@@ -32,6 +32,42 @@ go run ./cmd/cert-server `
 
 The server listens on localhost by default and requires a valid client certificate.
 
+UDP broadcast discovery is enabled by default on port **6666** (`-discovery-addr :6666`). Clients on the same LAN can find the server without hard-coding its IP.
+
+For LAN clients, bind gRPC to a reachable interface:
+
+```powershell
+go run ./cmd/cert-server `
+  -addr 0.0.0.0:50051 `
+  -ca certs/ca.crt `
+  -cert certs/server.crt `
+  -key certs/server.key
+```
+
+Disable discovery with `-discovery=false`. Windows Firewall may require an inbound rule for UDP 6666.
+
+**Discovery protocol:** send a UDP broadcast (or unicast) to port 6666:
+
+```json
+{"op":"discover","service":"tpm-cert-server"}
+```
+
+The server replies unicast with:
+
+```json
+{"op":"announce","service":"tpm-cert-server","version":"1","hostname":"HOST","grpc_addr":"192.168.1.50:50051"}
+```
+
+Use `grpc_addr` for mTLS gRPC connections. Discovery only advertises the endpoint; mTLS is still required for API access.
+
+Discover servers on the LAN:
+
+```powershell
+go run ./cmd/run-discovery
+```
+
+Optional flags: `-timeout 5s`, `-json`, `-probe 192.168.1.50:6666` (unicast to a specific host).
+
 ### 3. Run the example client
 
 ```powershell
@@ -57,10 +93,11 @@ The client will:
 | `proto/cert/v1/cert.proto` | gRPC API definition |
 | `gen/cert/v1/` | Generated protobuf/gRPC Go code |
 | `internal/winstore/` | Windows cert store enumeration and NCrypt signing |
-| `internal/server/` | gRPC service implementation |
+| `internal/server/` | gRPC service implementation and UDP discovery |
 | `internal/tlsutil/` | mTLS configuration helpers |
 | `cmd/cert-server/` | gRPC server entrypoint |
 | `cmd/example-client/` | Interactive example client |
+| `cmd/run-discovery/` | UDP LAN discovery client |
 | `cmd/gencerts/` | Dev mTLS CA/server/client certificate generator |
 | `cmd/ksp-register/` | Register/unregister the CNG KSP (admin) |
 | `cmd/ksp-install-cert/` | Install a remote cert into MY store and bind to the KSP |
