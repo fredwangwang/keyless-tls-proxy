@@ -51,7 +51,7 @@ func main() {
 	defer conn.Close()
 
 	client := certv1.NewCertServiceClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	resp, err := client.ListCertificates(ctx, &certv1.ListCertificatesRequest{})
