@@ -685,9 +685,14 @@ SECURITY_STATUS WINAPI KSPFreeSecret(NCRYPT_PROV_HANDLE hProvider, NCRYPT_SECRET
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD dwReason, LPVOID lpvReserved) {
     UNREFERENCED_PARAMETER(hinstDLL);
-    UNREFERENCED_PARAMETER(lpvReserved);
     if (dwReason == DLL_PROCESS_DETACH && g_bridgeReady) {
-        tpmcert_shutdown();
+        // If lpvReserved is non-NULL, the process is terminating.
+        // All threads (including Go runtime threads) have already been terminated
+        // by the OS, so calling Go code will deadlock. We only shut down the bridge
+        // if this is a dynamic unload (e.g. FreeLibrary).
+        if (lpvReserved == NULL) {
+            tpmcert_shutdown();
+        }
         g_bridgeReady = FALSE;
     }
     return TRUE;
