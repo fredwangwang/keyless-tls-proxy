@@ -149,6 +149,7 @@ NTSTATUS WINAPI GetKeyStorageInterface(
 }
 
 SECURITY_STATUS WINAPI KSPOpenProvider(NCRYPT_PROV_HANDLE* phProvider, LPCWSTR pszProviderName, DWORD dwFlags) {
+    OutputDebugStringA("KSP: KSPOpenProvider called\n");
     KSP_PROVIDER* pProvider;
     UNREFERENCED_PARAMETER(pszProviderName);
     UNREFERENCED_PARAMETER(dwFlags);
@@ -170,6 +171,7 @@ SECURITY_STATUS WINAPI KSPOpenProvider(NCRYPT_PROV_HANDLE* phProvider, LPCWSTR p
 }
 
 SECURITY_STATUS WINAPI KSPFreeProvider(NCRYPT_PROV_HANDLE hProvider) {
+    OutputDebugStringA("KSP: KSPFreeProvider called\n");
     KSP_PROVIDER* pProvider = KspValidateProvHandle(hProvider);
     if (pProvider == NULL) {
         return NTE_INVALID_HANDLE;
@@ -184,6 +186,7 @@ SECURITY_STATUS WINAPI KSPOpenKey(
     LPCWSTR pszKeyName,
     DWORD dwLegacyKeySpec,
     DWORD dwFlags) {
+    OutputDebugStringA("KSP: KSPOpenKey called\n");
     KSP_PROVIDER* pProvider;
     SECURITY_STATUS status;
     UNREFERENCED_PARAMETER(dwLegacyKeySpec);
@@ -206,6 +209,7 @@ SECURITY_STATUS WINAPI KSPCreatePersistedKey(
     LPCWSTR pszKeyName,
     DWORD dwLegacyKeySpec,
     DWORD dwFlags) {
+    OutputDebugStringA("KSP: KSPCreatePersistedKey called\n");
     UNREFERENCED_PARAMETER(hProvider);
     UNREFERENCED_PARAMETER(phKey);
     UNREFERENCED_PARAMETER(pszAlgId);
@@ -222,6 +226,7 @@ SECURITY_STATUS WINAPI KSPGetProviderProperty(
     DWORD cbOutput,
     DWORD* pcbResult,
     DWORD dwFlags) {
+    OutputDebugStringA("KSP: KSPGetProviderProperty called\n");
     UNREFERENCED_PARAMETER(hProvider);
     UNREFERENCED_PARAMETER(dwFlags);
     if (wcscmp(pszProperty, NCRYPT_NAME_PROPERTY) == 0) {
@@ -244,6 +249,7 @@ SECURITY_STATUS WINAPI KSPGetKeyProperty(
     DWORD cbOutput,
     DWORD* pcbResult,
     DWORD dwFlags) {
+    OutputDebugStringA("KSP: KSPGetKeyProperty called\n");
     KSP_KEY* pKey;
     UNREFERENCED_PARAMETER(hProvider);
     UNREFERENCED_PARAMETER(dwFlags);
@@ -278,6 +284,7 @@ SECURITY_STATUS WINAPI KSPSetProviderProperty(
     PBYTE pbInput,
     DWORD cbInput,
     DWORD dwFlags) {
+    OutputDebugStringA("KSP: KSPSetProviderProperty called\n");
     UNREFERENCED_PARAMETER(hProvider);
     UNREFERENCED_PARAMETER(pszProperty);
     UNREFERENCED_PARAMETER(pbInput);
@@ -293,6 +300,7 @@ SECURITY_STATUS WINAPI KSPSetKeyProperty(
     PBYTE pbInput,
     DWORD cbInput,
     DWORD dwFlags) {
+    OutputDebugStringA("KSP: KSPSetKeyProperty called\n");
     UNREFERENCED_PARAMETER(hProvider);
     UNREFERENCED_PARAMETER(hKey);
     UNREFERENCED_PARAMETER(pszProperty);
@@ -303,6 +311,7 @@ SECURITY_STATUS WINAPI KSPSetKeyProperty(
 }
 
 SECURITY_STATUS WINAPI KSPFinalizeKey(NCRYPT_PROV_HANDLE hProvider, NCRYPT_KEY_HANDLE hKey, DWORD dwFlags) {
+    OutputDebugStringA("KSP: KSPFinalizeKey called\n");
     UNREFERENCED_PARAMETER(hProvider);
     UNREFERENCED_PARAMETER(hKey);
     UNREFERENCED_PARAMETER(dwFlags);
@@ -310,6 +319,7 @@ SECURITY_STATUS WINAPI KSPFinalizeKey(NCRYPT_PROV_HANDLE hProvider, NCRYPT_KEY_H
 }
 
 SECURITY_STATUS WINAPI KSPDeleteKey(NCRYPT_PROV_HANDLE hProvider, NCRYPT_KEY_HANDLE hKey, DWORD dwFlags) {
+    OutputDebugStringA("KSP: KSPDeleteKey called\n");
     UNREFERENCED_PARAMETER(hProvider);
     UNREFERENCED_PARAMETER(hKey);
     UNREFERENCED_PARAMETER(dwFlags);
@@ -317,6 +327,7 @@ SECURITY_STATUS WINAPI KSPDeleteKey(NCRYPT_PROV_HANDLE hProvider, NCRYPT_KEY_HAN
 }
 
 SECURITY_STATUS WINAPI KSPFreeKey(NCRYPT_PROV_HANDLE hProvider, NCRYPT_KEY_HANDLE hKey) {
+    OutputDebugStringA("KSP: KSPFreeKey called\n");
     KSP_KEY* pKey;
     UNREFERENCED_PARAMETER(hProvider);
     pKey = KspValidateKeyHandle(hKey);
@@ -327,6 +338,7 @@ SECURITY_STATUS WINAPI KSPFreeKey(NCRYPT_PROV_HANDLE hProvider, NCRYPT_KEY_HANDL
 }
 
 SECURITY_STATUS WINAPI KSPFreeBuffer(PVOID pvInput) {
+    OutputDebugStringA("KSP: KSPFreeBuffer called\n");
     if (pvInput) {
         HeapFree(GetProcessHeap(), 0, pvInput);
     }
@@ -343,6 +355,7 @@ SECURITY_STATUS WINAPI KSPEncrypt(
     DWORD cbOutput,
     DWORD* pcbResult,
     DWORD dwFlags) {
+    OutputDebugStringA("KSP: KSPEncrypt called\n");
     UNREFERENCED_PARAMETER(hProvider);
     UNREFERENCED_PARAMETER(hKey);
     UNREFERENCED_PARAMETER(pbInput);
@@ -365,6 +378,7 @@ SECURITY_STATUS WINAPI KSPDecrypt(
     DWORD cbOutput,
     DWORD* pcbResult,
     DWORD dwFlags) {
+    OutputDebugStringA("KSP: KSPDecrypt called\n");
     UNREFERENCED_PARAMETER(hProvider);
     UNREFERENCED_PARAMETER(hKey);
     UNREFERENCED_PARAMETER(pbInput);
@@ -378,6 +392,7 @@ SECURITY_STATUS WINAPI KSPDecrypt(
 }
 
 SECURITY_STATUS WINAPI KSPIsAlgSupported(NCRYPT_PROV_HANDLE hProvider, LPCWSTR pszAlgId, DWORD dwFlags) {
+    OutputDebugStringA("KSP: KSPIsAlgSupported called\n");
     UNREFERENCED_PARAMETER(hProvider);
     UNREFERENCED_PARAMETER(dwFlags);
     if (wcscmp(pszAlgId, BCRYPT_RSA_ALGORITHM) == 0) {
@@ -392,6 +407,7 @@ SECURITY_STATUS WINAPI KSPEnumAlgorithms(
     DWORD* pdwAlgCount,
     NCryptAlgorithmName** ppAlgList,
     DWORD dwFlags) {
+    OutputDebugStringA("KSP: KSPEnumAlgorithms called\n");
     NCryptAlgorithmName* pList;
     UNREFERENCED_PARAMETER(hProvider);
     UNREFERENCED_PARAMETER(dwAlgOperations);
@@ -417,6 +433,7 @@ SECURITY_STATUS WINAPI KSPEnumKeys(
     NCryptKeyName** ppKeyName,
     PVOID* ppEnumState,
     DWORD dwFlags) {
+    OutputDebugStringA("KSP: KSPEnumKeys called\n");
     SECURITY_STATUS status;
     UNREFERENCED_PARAMETER(hProvider);
     UNREFERENCED_PARAMETER(pszScope);
@@ -442,6 +459,7 @@ SECURITY_STATUS WINAPI KSPImportKey(
     PBYTE pbData,
     DWORD cbData,
     DWORD dwFlags) {
+    OutputDebugStringA("KSP: KSPImportKey called\n");
     UNREFERENCED_PARAMETER(hProvider);
     UNREFERENCED_PARAMETER(hImportKey);
     UNREFERENCED_PARAMETER(pszBlobType);
@@ -463,6 +481,7 @@ SECURITY_STATUS WINAPI KSPExportKey(
     DWORD cbOutput,
     DWORD* pcbResult,
     DWORD dwFlags) {
+    OutputDebugStringA("KSP: KSPExportKey called\n");
     KSP_KEY* pKey;
     UNREFERENCED_PARAMETER(hProvider);
     UNREFERENCED_PARAMETER(hExportKey);
@@ -512,6 +531,7 @@ SECURITY_STATUS WINAPI KSPSignHash(
     DWORD cbSignature,
     DWORD* pcbResult,
     DWORD dwFlags) {
+    OutputDebugStringA("KSP: KSPSignHash called\n");
     KSP_KEY* pKey;
     char thumbprint[64];
     int hashAlg;
@@ -568,6 +588,7 @@ SECURITY_STATUS WINAPI KSPVerifySignature(
     PBYTE pbSignature,
     DWORD cbSignature,
     DWORD dwFlags) {
+    OutputDebugStringA("KSP: KSPVerifySignature called\n");
     KSP_KEY* pKey;
     BCRYPT_ALG_HANDLE hRSA = NULL;
     BCRYPT_KEY_HANDLE hPub = NULL;
@@ -603,6 +624,7 @@ SECURITY_STATUS WINAPI KSPVerifySignature(
 }
 
 SECURITY_STATUS WINAPI KSPPromptUser(NCRYPT_PROV_HANDLE hProvider, NCRYPT_KEY_HANDLE hKey, LPCWSTR pszOperation, DWORD dwFlags) {
+    OutputDebugStringA("KSP: KSPPromptUser called\n");
     UNREFERENCED_PARAMETER(hProvider);
     UNREFERENCED_PARAMETER(hKey);
     UNREFERENCED_PARAMETER(pszOperation);
@@ -611,6 +633,7 @@ SECURITY_STATUS WINAPI KSPPromptUser(NCRYPT_PROV_HANDLE hProvider, NCRYPT_KEY_HA
 }
 
 SECURITY_STATUS WINAPI KSPNotifyChangeKey(NCRYPT_PROV_HANDLE hProvider, HANDLE* phEvent, DWORD dwFlags) {
+    OutputDebugStringA("KSP: KSPNotifyChangeKey called\n");
     UNREFERENCED_PARAMETER(hProvider);
     UNREFERENCED_PARAMETER(phEvent);
     UNREFERENCED_PARAMETER(dwFlags);
@@ -623,6 +646,7 @@ SECURITY_STATUS WINAPI KSPSecretAgreement(
     NCRYPT_KEY_HANDLE hPubKey,
     NCRYPT_SECRET_HANDLE* phAgreedSecret,
     DWORD dwFlags) {
+    OutputDebugStringA("KSP: KSPSecretAgreement called\n");
     UNREFERENCED_PARAMETER(hProvider);
     UNREFERENCED_PARAMETER(hPrivKey);
     UNREFERENCED_PARAMETER(hPubKey);
@@ -640,6 +664,7 @@ SECURITY_STATUS WINAPI KSPDeriveKey(
     DWORD cbDerivedKey,
     DWORD* pcbResult,
     ULONG dwFlags) {
+    OutputDebugStringA("KSP: KSPDeriveKey called\n");
     UNREFERENCED_PARAMETER(hProvider);
     UNREFERENCED_PARAMETER(hSharedSecret);
     UNREFERENCED_PARAMETER(pwszKDF);
@@ -652,6 +677,7 @@ SECURITY_STATUS WINAPI KSPDeriveKey(
 }
 
 SECURITY_STATUS WINAPI KSPFreeSecret(NCRYPT_PROV_HANDLE hProvider, NCRYPT_SECRET_HANDLE hSharedSecret) {
+    OutputDebugStringA("KSP: KSPFreeSecret called\n");
     UNREFERENCED_PARAMETER(hProvider);
     UNREFERENCED_PARAMETER(hSharedSecret);
     return NTE_NOT_SUPPORTED;
