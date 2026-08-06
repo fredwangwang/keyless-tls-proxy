@@ -51,10 +51,10 @@ func main() {
 	defer conn.Close()
 
 	client := certv1.NewCertServiceClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
 
-	resp, err := client.ListCertificates(ctx, &certv1.ListCertificatesRequest{})
+	listCtx, listCancel := context.WithTimeout(context.Background(), 15*time.Second)
+	resp, err := client.ListCertificates(listCtx, &certv1.ListCertificatesRequest{})
+	listCancel()
 	if err != nil {
 		fatal(err)
 	}
@@ -69,10 +69,11 @@ func main() {
 			tpm = "yes"
 		}
 		fmt.Printf(
-			"  [%d] %s\n      subject: %s\n      key: %s %d-bit  tpm: %s  provider: %s\n",
+			"  [%d] %s\n      subject: %s\n      issuer: %s\n      key: %s %d-bit  tpm: %s  provider: %s\n",
 			i+1,
 			c.Thumbprint,
 			c.Subject,
+			c.Issuer,
 			c.KeyAlgorithm,
 			c.KeySize,
 			tpm,
@@ -106,12 +107,14 @@ func main() {
 	}
 
 	digest := sha256.Sum256([]byte(text))
-	signResp, err := client.SignHash(ctx, &certv1.SignHashRequest{
+	signCtx, signCancel := context.WithTimeout(context.Background(), 15*time.Second)
+	signResp, err := client.SignHash(signCtx, &certv1.SignHashRequest{
 		Thumbprint:    selected.Thumbprint,
 		Digest:        digest[:],
 		HashAlgorithm: certv1.HashAlgorithm_SHA256,
 		RsaPadding:    rsaPadding,
 	})
+	signCancel()
 	if err != nil {
 		fatal(err)
 	}

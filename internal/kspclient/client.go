@@ -119,7 +119,7 @@ func (c *Client) refreshRemoteListLocked(ctx context.Context) error {
 	if time.Since(c.cachedAt) < listCacheTTL && len(c.cachedList) > 0 {
 		return nil
 	}
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	resp, err := c.rpc.ListCertificates(ctx, &certv1.ListCertificatesRequest{})
 	if err != nil {
@@ -195,7 +195,7 @@ func (c *Client) SignHash(ctx context.Context, thumbprint string, digest []byte,
 	if _, err := c.FindInstalled(ctx, tp); err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	resp, err := c.rpc.SignHash(ctx, &certv1.SignHashRequest{
 		Thumbprint:    tp,
