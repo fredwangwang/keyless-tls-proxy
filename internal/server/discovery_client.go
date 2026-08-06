@@ -7,7 +7,6 @@ import (
 	"net"
 	"sort"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -148,7 +147,7 @@ func enableBroadcast(conn net.PacketConn) error {
 	}
 	var sockErr error
 	err = raw.Control(func(fd uintptr) {
-		sockErr = syscall.SetsockoptInt(syscall.Handle(fd), syscall.SOL_SOCKET, syscall.SO_BROADCAST, 1)
+		sockErr = setSOBroadcast(fd)
 	})
 	if err != nil {
 		return fmt.Errorf("control: %w", err)
