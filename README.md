@@ -103,9 +103,12 @@ The client will:
 | `cmd/ksp-install-cert/` | Install a remote cert into MY store and bind to the KSP |
 | `ksp/` | CNG Key Storage Provider DLL sources |
 | `internal/kspclient/` | gRPC client library for the KSP bridge |
-| `internal/kspbridge/` | Go c-archive exports linked into the KSP DLL |
+| `internal/ctkbridge/` | Go c-archive exports linked into the macOS CTK provider |
+| `mac-provider/` | macOS CryptoTokenKit (CTK) custom provider sources |
 | `scripts/gen-proto.ps1` | Regenerate protobuf code |
 | `scripts/build-ksp.ps1` | Build KSP DLL and helper tools |
+| `scripts/build-mac-provider.sh` | Build macOS CryptoTokenKit provider |
+| `ref/OpenSCToken/` | Reference — macOS CryptoTokenKit SmartCard provider |
 | `ref/BlackICE_Connect/` | Git submodule — upstream Gradiant CNG KSP reference |
 
 ## gRPC API
