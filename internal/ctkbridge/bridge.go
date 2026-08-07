@@ -3,6 +3,7 @@ package main
 /*
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 typedef struct {
 	char thumbprint[64];
@@ -17,6 +18,7 @@ import "C"
 
 import (
 	"context"
+	"fmt"
 	"time"
 	"unsafe"
 
@@ -51,9 +53,7 @@ func ctk_bridge_init(configPath *C.char) C.int {
 //export ctk_bridge_init_opts
 func ctk_bridge_init_opts(addr, ca, cert, key *C.char) C.int {
 	if addr == nil || ca == nil || cert == nil || key == nil {
-		cMsg := C.CString("ctk_bridge_init_opts: null arg passed\n")
-		C.printf(cMsg)
-		C.free(unsafe.Pointer(cMsg))
+		fmt.Println("ctk_bridge_init_opts: null arg passed")
 		return codeErr
 	}
 	cfg := &kspclient.Config{
@@ -63,14 +63,10 @@ func ctk_bridge_init_opts(addr, ca, cert, key *C.char) C.int {
 		Key:  C.GoString(key),
 	}
 	if err := kspclient.InitGlobal(cfg); err != nil {
-		cMsg := C.CString(fmt.Sprintf("ctk_bridge_init_opts InitGlobal error: %v\n", err))
-		C.printf(cMsg)
-		C.free(unsafe.Pointer(cMsg))
+		fmt.Printf("ctk_bridge_init_opts InitGlobal error: %v\n", err)
 		return codeErr
 	}
-	cMsg := C.CString(fmt.Sprintf("ctk_bridge_init_opts InitGlobal success for addr: %s\n", cfg.Addr))
-	C.printf(cMsg)
-	C.free(unsafe.Pointer(cMsg))
+	fmt.Printf("ctk_bridge_init_opts InitGlobal success for addr: %s\n", cfg.Addr)
 	return codeOK
 }
 
@@ -83,9 +79,7 @@ func ctk_bridge_shutdown() {
 func ctk_bridge_installed_count() C.int {
 	c := kspclient.Global()
 	if c == nil {
-		cMsg := C.CString("ctk_bridge_installed_count: Global client is NIL!\n")
-		C.printf(cMsg)
-		C.free(unsafe.Pointer(cMsg))
+		fmt.Println("ctk_bridge_installed_count: Global client is NIL!")
 		return 0
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -93,14 +87,10 @@ func ctk_bridge_installed_count() C.int {
 
 	keys, err := c.InstalledKeys(ctx)
 	if err != nil {
-		cMsg := C.CString(fmt.Sprintf("ctk_bridge_installed_count InstalledKeys error: %v\n", err))
-		C.printf(cMsg)
-		C.free(unsafe.Pointer(cMsg))
+		fmt.Printf("ctk_bridge_installed_count InstalledKeys error: %v\n", err)
 		return 0
 	}
-	cMsg := C.CString(fmt.Sprintf("ctk_bridge_installed_count returning keys len: %d\n", len(keys)))
-	C.printf(cMsg)
-	C.free(unsafe.Pointer(cMsg))
+	fmt.Printf("ctk_bridge_installed_count returning keys len: %d\n", len(keys))
 	return C.int(len(keys))
 }
 
