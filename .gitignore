@@ -4,3 +4,4 @@ tools/protoc.zip
 build/
 *.exe
 *.obj
+.DS_Store

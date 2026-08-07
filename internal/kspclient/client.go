@@ -161,6 +161,9 @@ func (c *Client) InstalledKeys(ctx context.Context) ([]KeyInfo, error) {
 	if err := c.refreshRemoteListLocked(ctx); err != nil {
 		return nil, err
 	}
+	if len(c.manifest) == 0 {
+		return c.cachedList, nil
+	}
 	byTP := make(map[string]KeyInfo, len(c.cachedList))
 	for _, k := range c.cachedList {
 		byTP[k.Thumbprint] = k

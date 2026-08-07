@@ -1,3 +1,6 @@
 [submodule "ref/BlackICE_Connect"]
 	path = ref/BlackICE_Connect
 	url = https://github.com/Gradiant/BlackICE_Connect
+[submodule "ref/OpenSCToken"]
+	path = ref/OpenSCToken
+	url = https://github.com/frankmorgner/OpenSCToken.git
