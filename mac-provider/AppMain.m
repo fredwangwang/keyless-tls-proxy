@@ -78,7 +78,6 @@ static NSArray<TKTokenKeychainItem *> *fetchKeychainItemsFromBridge(void) {
     [self.window setTitle:@"TPM Cert Proxy - MacToken Provider"];
     
     NSTextField *label = [[NSTextField alloc] initWithFrame:NSMakeRect(20, 100, 480, 40)];
-    [label setStringValue:@"MacToken CryptoTokenKit Provider Registered & Active!"];
     [label setEditable:NO];
     [label setBordered:NO];
     [label setDrawsBackground:NO];
@@ -87,7 +86,6 @@ static NSArray<TKTokenKeychainItem *> *fetchKeychainItemsFromBridge(void) {
     [[self.window contentView] addSubview:label];
 
     NSTextField *sublabel = [[NSTextField alloc] initWithFrame:NSMakeRect(20, 50, 480, 40)];
-    [sublabel setStringValue:@"Available for Chrome, Safari, and macOS system client authentication."];
     [sublabel setEditable:NO];
     [sublabel setBordered:NO];
     [sublabel setDrawsBackground:NO];
@@ -95,45 +93,65 @@ static NSArray<TKTokenKeychainItem *> *fetchKeychainItemsFromBridge(void) {
     [sublabel setFont:[NSFont systemFontOfSize:12 weight:NSFontWeightRegular]];
     [[self.window contentView] addSubview:sublabel];
     
-    [self.window center];
-    [self.window makeKeyAndOrderFront:nil];
-    [NSApp activateIgnoringOtherApps:YES];
-    
     NSBundle *bundle = [NSBundle mainBundle];
     NSString *ca = [bundle pathForResource:@"ca" ofType:@"crt" inDirectory:@"certs"];
     NSString *cert = [bundle pathForResource:@"client" ofType:@"crt" inDirectory:@"certs"];
     NSString *key = [bundle pathForResource:@"client" ofType:@"key" inDirectory:@"certs"];
     
     if (!ca || !cert || !key) {
-        NSString *workspaceCertPath = @"/Users/huan/workspace/winksp-proxy/certs";
-        ca = [workspaceCertPath stringByAppendingPathComponent:@"ca.crt"];
-        cert = [workspaceCertPath stringByAppendingPathComponent:@"client.crt"];
-        key = [workspaceCertPath stringByAppendingPathComponent:@"client.key"];
-    }
-    
-    NSLog(@"AppMain initializing ctk bridge with CA: %@, cert: %@, key: %@", ca, cert, key);
-    int initRes = ctk_bridge_init_opts("192.168.0.133:50051", (char *)ca.UTF8String, (char *)cert.UTF8String, (char *)key.UTF8String);
-    NSLog(@"AppMain ctk_bridge_init_opts res: %d", initRes);
-
-    NSString *classID = @"com.fredprx.mactoken.app.extension";
-    NSDictionary<NSString *, TKTokenDriverConfiguration *> *configs = [TKTokenDriverConfiguration driverConfigurations];
-    NSLog(@"TKTokenDriverConfiguration driverConfigurations: %@", configs);
-    TKTokenDriverConfiguration *driverConfig = configs[classID];
-    if (driverConfig) {
-        NSLog(@"Found driverConfig for classID %@", classID);
-        TKTokenConfiguration *tokenConfig = driverConfig.tokenConfigurations[@"CertServerToken"];
-        if (!tokenConfig) {
-            tokenConfig = [driverConfig addTokenConfigurationForTokenInstanceID:@"CertServerToken"];
-            NSLog(@"Added tokenConfig for CertServerToken: %@", tokenConfig);
-        }
-        NSArray<TKTokenKeychainItem *> *items = fetchKeychainItemsFromBridge();
-        tokenConfig.keychainItems = items;
-        NSLog(@"AppMain set %ld keychainItems on tokenConfig", (long)items.count);
-        printf("AppMain set %ld keychainItems on tokenConfig\n", (long)items.count);
+        NSMutableArray<NSString *> *missing = [NSMutableArray array];
+        if (!ca) [missing addObject:@"ca.crt"];
+        if (!cert) [missing addObject:@"client.crt"];
+        if (!key) [missing addObject:@"client.key"];
+        
+        NSString *missingStr = [missing componentsJoinedByString:@", "];
+        NSLog(@"AppMain error: missing certificate files: %@", missingStr);
+        
+        [label setStringValue:@"Initialization Failed: Certificate(s) Missing"];
+        [label setTextColor:[NSColor systemRedColor]];
+        [sublabel setStringValue:[NSString stringWithFormat:@"Missing required bundle certificates in certs/: %@", missingStr]];
+        [sublabel setTextColor:[NSColor systemRedColor]];
     } else {
-        NSLog(@"driverConfig is NIL for classID %@", classID);
-        printf("driverConfig is NIL for classID %s\n", classID.UTF8String);
+        NSLog(@"AppMain initializing ctk bridge with CA: %@, cert: %@, key: %@", ca, cert, key);
+        int initRes = ctk_bridge_init_opts("192.168.0.133:50051", (char *)ca.UTF8String, (char *)cert.UTF8String, (char *)key.UTF8String);
+        NSLog(@"AppMain ctk_bridge_init_opts res: %d", initRes);
+
+        if (initRes != 0) {
+            [label setStringValue:@"Initialization Failed: Bridge Error"];
+            [label setTextColor:[NSColor systemRedColor]];
+            [sublabel setStringValue:[NSString stringWithFormat:@"ctk_bridge_init_opts returned error code %d", initRes]];
+            [sublabel setTextColor:[NSColor systemRedColor]];
+        } else {
+            [label setStringValue:@"MacToken CryptoTokenKit Provider Registered & Active!"];
+            [label setTextColor:[NSColor labelColor]];
+            [sublabel setStringValue:@"Available for Chrome, Safari, and macOS system client authentication."];
+            [sublabel setTextColor:[NSColor secondaryLabelColor]];
+
+            NSString *classID = @"com.fredprx.mactoken.app.extension";
+            NSDictionary<NSString *, TKTokenDriverConfiguration *> *configs = [TKTokenDriverConfiguration driverConfigurations];
+            NSLog(@"TKTokenDriverConfiguration driverConfigurations: %@", configs);
+            TKTokenDriverConfiguration *driverConfig = configs[classID];
+            if (driverConfig) {
+                NSLog(@"Found driverConfig for classID %@", classID);
+                TKTokenConfiguration *tokenConfig = driverConfig.tokenConfigurations[@"CertServerToken"];
+                if (!tokenConfig) {
+                    tokenConfig = [driverConfig addTokenConfigurationForTokenInstanceID:@"CertServerToken"];
+                    NSLog(@"Added tokenConfig for CertServerToken: %@", tokenConfig);
+                }
+                NSArray<TKTokenKeychainItem *> *items = fetchKeychainItemsFromBridge();
+                tokenConfig.keychainItems = items;
+                NSLog(@"AppMain set %ld keychainItems on tokenConfig", (long)items.count);
+                printf("AppMain set %ld keychainItems on tokenConfig\n", (long)items.count);
+            } else {
+                NSLog(@"driverConfig is NIL for classID %@", classID);
+                printf("driverConfig is NIL for classID %s\n", classID.UTF8String);
+            }
+        }
     }
+
+    [self.window center];
+    [self.window makeKeyAndOrderFront:nil];
+    [NSApp activateIgnoringOtherApps:YES];
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender {
