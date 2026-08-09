@@ -1,0 +1,548 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0C743323ED8563C79433A636 /* Token.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E20B87F6BE9658D10B51C5D /* Token.m */; };
+		1F440A68564C957462255C8F /* TokenSession.m in Sources */ = {isa = PBXBuildFile; fileRef = D42C1F7C2466FC2251973740 /* TokenSession.m */; };
+		4B4E7E835D61BADDC0B1CE9A /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1B0E882AC6CBE1BF7B832E00 /* Security.framework */; };
+		777B031107AE01D9FD4BE4B5 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1B0E882AC6CBE1BF7B832E00 /* Security.framework */; };
+		9153D11C40B4EF01AEEC4985 /* ExtensionMain.m in Sources */ = {isa = PBXBuildFile; fileRef = ADD0C569200488A36182DFC4 /* ExtensionMain.m */; };
+		B3AAC9F214E182BF44D87AE1 /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 08F284C65DAE26031F5D5883 /* libresolv.tbd */; };
+		C6B8A597C4B0285D3FDBD264 /* TokenDriver.m in Sources */ = {isa = PBXBuildFile; fileRef = E11FFAAEE60AD8953BB083B7 /* TokenDriver.m */; };
+		D41D55F4E3A004655B9D558D /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 08F284C65DAE26031F5D5883 /* libresolv.tbd */; };
+		E5906FF61335FD4F7D08B6F2 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 433CE87FAE9F2504DCB8E01E /* Cocoa.framework */; };
+		EF974C37A5D4DFF3A520BB92 /* MacTokenExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 080238D7AF30F6E0518D2987 /* MacTokenExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F1904E0AF6F7634314F6C0A2 /* AppMain.m in Sources */ = {isa = PBXBuildFile; fileRef = 5E8D2518AFC05CA7461D71E7 /* AppMain.m */; };
+		F708A9B483122272D9A8E9B9 /* CryptoTokenKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3995AAD48CC0F730767C4295 /* CryptoTokenKit.framework */; };
+		FC7E90A526345FC4E7BE80F0 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2613649C6A2D35434EA9665E /* Foundation.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		6BE42771D8E0D6230EDBF7C3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 259E9E1ECE80C7EDB2DA2B35 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 51E73D6D056198BAAC390EC7;
+			remoteInfo = MacTokenExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		7CA2400BC867A341602BE5F2 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				EF974C37A5D4DFF3A520BB92 /* MacTokenExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		080238D7AF30F6E0518D2987 /* MacTokenExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MacTokenExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		08F284C65DAE26031F5D5883 /* libresolv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libresolv.tbd; path = usr/lib/libresolv.tbd; sourceTree = SDKROOT; };
+		0E20B87F6BE9658D10B51C5D /* Token.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Token.m; sourceTree = "<group>"; };
+		1B0E882AC6CBE1BF7B832E00 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		2613649C6A2D35434EA9665E /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		3995AAD48CC0F730767C4295 /* CryptoTokenKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CryptoTokenKit.framework; path = System/Library/Frameworks/CryptoTokenKit.framework; sourceTree = SDKROOT; };
+		433CE87FAE9F2504DCB8E01E /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		5BEF959E8E80CF12FA4A4699 /* TokenDriver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TokenDriver.h; sourceTree = "<group>"; };
+		5E8D2518AFC05CA7461D71E7 /* AppMain.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppMain.m; sourceTree = "<group>"; };
+		9B01A5C498DE6A4E9DA50D80 /* MacTokenApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacTokenApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		ADD0C569200488A36182DFC4 /* ExtensionMain.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ExtensionMain.m; sourceTree = "<group>"; };
+		BA1AA1F62ECAA0E8E922E580 /* Token.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Token.h; sourceTree = "<group>"; };
+		D42C1F7C2466FC2251973740 /* TokenSession.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TokenSession.m; sourceTree = "<group>"; };
+		E11FFAAEE60AD8953BB083B7 /* TokenDriver.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TokenDriver.m; sourceTree = "<group>"; };
+		FD291B66E313013DCA70D3A8 /* TokenSession.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TokenSession.h; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		824B5C8DA0E2A296F29E5D35 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FC7E90A526345FC4E7BE80F0 /* Foundation.framework in Frameworks */,
+				4B4E7E835D61BADDC0B1CE9A /* Security.framework in Frameworks */,
+				F708A9B483122272D9A8E9B9 /* CryptoTokenKit.framework in Frameworks */,
+				D41D55F4E3A004655B9D558D /* libresolv.tbd in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BB775FF95C1A0A98422A6FE6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E5906FF61335FD4F7D08B6F2 /* Cocoa.framework in Frameworks */,
+				777B031107AE01D9FD4BE4B5 /* Security.framework in Frameworks */,
+				B3AAC9F214E182BF44D87AE1 /* libresolv.tbd in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		881E5022ABEBB0DE86F4FBD9 /* mac-provider */ = {
+			isa = PBXGroup;
+			children = (
+				5E8D2518AFC05CA7461D71E7 /* AppMain.m */,
+				ADD0C569200488A36182DFC4 /* ExtensionMain.m */,
+				BA1AA1F62ECAA0E8E922E580 /* Token.h */,
+				0E20B87F6BE9658D10B51C5D /* Token.m */,
+				5BEF959E8E80CF12FA4A4699 /* TokenDriver.h */,
+				E11FFAAEE60AD8953BB083B7 /* TokenDriver.m */,
+				FD291B66E313013DCA70D3A8 /* TokenSession.h */,
+				D42C1F7C2466FC2251973740 /* TokenSession.m */,
+			);
+			path = "mac-provider";
+			sourceTree = "<group>";
+		};
+		942BB9BA77914C6D8FC50867 = {
+			isa = PBXGroup;
+			children = (
+				881E5022ABEBB0DE86F4FBD9 /* mac-provider */,
+				CC003BAB09D9D14EF18E7CCE /* Frameworks */,
+				FEE2661B6C7F170C0111DCA0 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CC003BAB09D9D14EF18E7CCE /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				433CE87FAE9F2504DCB8E01E /* Cocoa.framework */,
+				3995AAD48CC0F730767C4295 /* CryptoTokenKit.framework */,
+				2613649C6A2D35434EA9665E /* Foundation.framework */,
+				08F284C65DAE26031F5D5883 /* libresolv.tbd */,
+				1B0E882AC6CBE1BF7B832E00 /* Security.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		FEE2661B6C7F170C0111DCA0 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				9B01A5C498DE6A4E9DA50D80 /* MacTokenApp.app */,
+				080238D7AF30F6E0518D2987 /* MacTokenExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		51E73D6D056198BAAC390EC7 /* MacTokenExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8440BF7BDC72ED5395F5BA1E /* Build configuration list for PBXNativeTarget "MacTokenExtension" */;
+			buildPhases = (
+				33693713E7A1500A2844AB98 /* Build Go C-Archive (libctkbridge.a) */,
+				DB7440A9BAF49717485232F7 /* Sources */,
+				824B5C8DA0E2A296F29E5D35 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MacTokenExtension;
+			packageProductDependencies = (
+			);
+			productName = MacTokenExtension;
+			productReference = 080238D7AF30F6E0518D2987 /* MacTokenExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		C15C845BD95A7D579C4EB36C /* MacTokenApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 621E0AE1329B181D96814191 /* Build configuration list for PBXNativeTarget "MacTokenApp" */;
+			buildPhases = (
+				D34108217AABC06DECCC7845 /* Sources */,
+				BB775FF95C1A0A98422A6FE6 /* Frameworks */,
+				7CA2400BC867A341602BE5F2 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				FCFECDD3353F9DACBF9414F1 /* PBXTargetDependency */,
+			);
+			name = MacTokenApp;
+			packageProductDependencies = (
+			);
+			productName = MacTokenApp;
+			productReference = 9B01A5C498DE6A4E9DA50D80 /* MacTokenApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		259E9E1ECE80C7EDB2DA2B35 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					51E73D6D056198BAAC390EC7 = {
+						DevelopmentTeam = 8Z93635RW6;
+						ProvisioningStyle = Automatic;
+					};
+					C15C845BD95A7D579C4EB36C = {
+						DevelopmentTeam = 8Z93635RW6;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = A0EF745AA1943BF2D6DEE68C /* Build configuration list for PBXProject "MacTokenApp" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 942BB9BA77914C6D8FC50867;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = FEE2661B6C7F170C0111DCA0 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				51E73D6D056198BAAC390EC7 /* MacTokenExtension */,
+				C15C845BD95A7D579C4EB36C /* MacTokenApp */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		33693713E7A1500A2844AB98 /* Build Go C-Archive (libctkbridge.a) */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build Go C-Archive (libctkbridge.a)";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ -f \"$PROJECT_DIR/go.mod\" ]; then\n  cd \"$PROJECT_DIR\"\nelif [ -f \"$PROJECT_DIR/../go.mod\" ]; then\n  cd \"$PROJECT_DIR/..\"\nfi\nexport PATH=\"/usr/local/bin:/opt/homebrew/bin:$PATH\"\nmkdir -p build\nTARGET_ARCHS=\"${ARCHS:-$(uname -m)}\"\nrm -f build/libctkbridge_*.a\nBUILD_LIBS=()\nfor ARCH in $TARGET_ARCHS; do\n    GO_ARCH=\"\"\n    case \"$ARCH\" in\n        arm64|arm64e) GO_ARCH=\"arm64\" ;;\n        x86_64|amd64) GO_ARCH=\"amd64\" ;;\n    esac\n    if [ -n \"$GO_ARCH\" ]; then\n        ARCH_LIB=\"build/libctkbridge_${GO_ARCH}.a\"\n        if [ ! -f \"$ARCH_LIB\" ]; then\n            GOOS=darwin GOARCH=\"$GO_ARCH\" CGO_ENABLED=1 go build -buildmode=c-archive -o \"$ARCH_LIB\" ./internal/ctkbridge\n        fi\n        BUILD_LIBS+=(\"$ARCH_LIB\")\n    fi\ndone\nrm -f build/libctkbridge.a\nif [ ${#BUILD_LIBS[@]} -eq 1 ]; then\n    cp \"${BUILD_LIBS[0]}\" build/libctkbridge.a\nelif [ ${#BUILD_LIBS[@]} -gt 1 ]; then\n    lipo -create \"${BUILD_LIBS[@]}\" -output build/libctkbridge.a\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D34108217AABC06DECCC7845 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F1904E0AF6F7634314F6C0A2 /* AppMain.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DB7440A9BAF49717485232F7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9153D11C40B4EF01AEEC4985 /* ExtensionMain.m in Sources */,
+				0C743323ED8563C79433A636 /* Token.m in Sources */,
+				C6B8A597C4B0285D3FDBD264 /* TokenDriver.m in Sources */,
+				1F440A68564C957462255C8F /* TokenSession.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		FCFECDD3353F9DACBF9414F1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 51E73D6D056198BAAC390EC7 /* MacTokenExtension */;
+			targetProxy = 6BE42771D8E0D6230EDBF7C3 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		00C158462E2D9024B39D8FCA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "mac-provider/app.entitlements";
+				CODE_SIGN_IDENTITY = "Developer ID Application";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 8Z93635RW6;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/build",
+					"$(PROJECT_DIR)/mac-provider",
+				);
+				INFOPLIST_FILE = "mac-provider/App-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/build";
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				OTHER_LDFLAGS = (
+					"$(PROJECT_DIR)/build/libctkbridge.a",
+					"-lresolv",
+					"-lpthread",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.fredprx.mactoken.app;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		0C2C4CED9CEE55971607315B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "mac-provider/app.entitlements";
+				CODE_SIGN_IDENTITY = "Developer ID Application";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 8Z93635RW6;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/build",
+					"$(PROJECT_DIR)/mac-provider",
+				);
+				INFOPLIST_FILE = "mac-provider/App-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/build";
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				OTHER_LDFLAGS = (
+					"$(PROJECT_DIR)/build/libctkbridge.a",
+					"-lresolv",
+					"-lpthread",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.fredprx.mactoken.app;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		34F146CF128A417766C9451D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "Developer ID Application";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		9CFA73DEF8527A3C886DF69F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "Developer ID Application";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		B3DCDB48B10071F6A97157AC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "mac-provider/extension.entitlements";
+				CODE_SIGN_IDENTITY = "Developer ID Application";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 8Z93635RW6;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/build",
+					"$(PROJECT_DIR)/mac-provider",
+				);
+				INFOPLIST_FILE = "mac-provider/Extension-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/build";
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				OTHER_LDFLAGS = (
+					"$(PROJECT_DIR)/build/libctkbridge.a",
+					"-lresolv",
+					"-lpthread",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.fredprx.mactoken.app.extension;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		B507706EED57F7B140274E3C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "mac-provider/extension.entitlements";
+				CODE_SIGN_IDENTITY = "Developer ID Application";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 8Z93635RW6;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/build",
+					"$(PROJECT_DIR)/mac-provider",
+				);
+				INFOPLIST_FILE = "mac-provider/Extension-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/build";
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				OTHER_LDFLAGS = (
+					"$(PROJECT_DIR)/build/libctkbridge.a",
+					"-lresolv",
+					"-lpthread",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.fredprx.mactoken.app.extension;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		621E0AE1329B181D96814191 /* Build configuration list for PBXNativeTarget "MacTokenApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				00C158462E2D9024B39D8FCA /* Debug */,
+				0C2C4CED9CEE55971607315B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8440BF7BDC72ED5395F5BA1E /* Build configuration list for PBXNativeTarget "MacTokenExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B507706EED57F7B140274E3C /* Debug */,
+				B3DCDB48B10071F6A97157AC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A0EF745AA1943BF2D6DEE68C /* Build configuration list for PBXProject "MacTokenApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9CFA73DEF8527A3C886DF69F /* Debug */,
+				34F146CF128A417766C9451D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 259E9E1ECE80C7EDB2DA2B35 /* Project object */;
+}

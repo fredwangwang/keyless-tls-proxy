@@ -1,0 +1,93 @@
+name: MacTokenApp
+options:
+  bundleIdPrefix: com.fredprx.mactoken
+  deploymentTarget:
+    macOS: "11.0"
+  createIntermediateGroups: true
+
+targets:
+  MacTokenExtension:
+    type: app-extension
+    platform: macOS
+    deploymentTarget: "11.0"
+    sources:
+      - ExtensionMain.m
+      - TokenDriver.h
+      - TokenDriver.m
+      - Token.h
+      - Token.m
+      - TokenSession.h
+      - TokenSession.m
+    dependencies:
+      - sdk: Foundation.framework
+      - sdk: Security.framework
+      - sdk: CryptoTokenKit.framework
+      - sdk: libresolv.tbd
+    preBuildScripts:
+      - name: "Build Go C-Archive (libctkbridge.a)"
+        script: |
+          if [ -f "$PROJECT_DIR/go.mod" ]; then
+            cd "$PROJECT_DIR"
+          elif [ -f "$PROJECT_DIR/../go.mod" ]; then
+            cd "$PROJECT_DIR/.."
+          fi
+          export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
+          mkdir -p build
+          TARGET_ARCHS="${ARCHS:-$(uname -m)}"
+          rm -f build/libctkbridge_*.a
+          BUILD_LIBS=()
+          for ARCH in $TARGET_ARCHS; do
+              GO_ARCH=""
+              case "$ARCH" in
+                  arm64|arm64e) GO_ARCH="arm64" ;;
+                  x86_64|amd64) GO_ARCH="amd64" ;;
+              esac
+              if [ -n "$GO_ARCH" ]; then
+                  ARCH_LIB="build/libctkbridge_${GO_ARCH}.a"
+                  if [ ! -f "$ARCH_LIB" ]; then
+                      GOOS=darwin GOARCH="$GO_ARCH" CGO_ENABLED=1 go build -buildmode=c-archive -o "$ARCH_LIB" ./internal/ctkbridge
+                  fi
+                  BUILD_LIBS+=("$ARCH_LIB")
+              fi
+          done
+          rm -f build/libctkbridge.a
+          if [ ${#BUILD_LIBS[@]} -eq 1 ]; then
+              cp "${BUILD_LIBS[0]}" build/libctkbridge.a
+          elif [ ${#BUILD_LIBS[@]} -gt 1 ]; then
+              lipo -create "${BUILD_LIBS[@]}" -output build/libctkbridge.a
+          fi
+    settings:
+      base:
+        DEVELOPMENT_TEAM: 8Z93635RW6
+        PRODUCT_BUNDLE_IDENTIFIER: com.fredprx.mactoken.app.extension
+        INFOPLIST_FILE: Extension-Info.plist
+        CODE_SIGN_ENTITLEMENTS: extension.entitlements
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: "-"
+        HEADER_SEARCH_PATHS: "$(PROJECT_DIR)/../build $(PROJECT_DIR)"
+        LIBRARY_SEARCH_PATHS: "$(PROJECT_DIR)/../build"
+        OTHER_LDFLAGS: "$(PROJECT_DIR)/../build/libctkbridge.a -lresolv -lpthread"
+
+  MacTokenApp:
+    type: application
+    platform: macOS
+    deploymentTarget: "11.0"
+    sources:
+      - AppMain.m
+    dependencies:
+      - target: MacTokenExtension
+        embed: true
+      - sdk: Cocoa.framework
+      - sdk: Security.framework
+      - sdk: libresolv.tbd
+    settings:
+      base:
+        DEVELOPMENT_TEAM: 8Z93635RW6
+        PRODUCT_BUNDLE_IDENTIFIER: com.fredprx.mactoken.app
+        INFOPLIST_FILE: App-Info.plist
+        CODE_SIGN_ENTITLEMENTS: app.entitlements
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: "-"
+        HEADER_SEARCH_PATHS: "$(PROJECT_DIR)/../build $(PROJECT_DIR)"
+        LIBRARY_SEARCH_PATHS: "$(PROJECT_DIR)/../build"
+        OTHER_LDFLAGS: "$(PROJECT_DIR)/../build/libctkbridge.a -lresolv -lpthread"
