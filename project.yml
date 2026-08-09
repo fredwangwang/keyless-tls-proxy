@@ -4,6 +4,7 @@ options:
   deploymentTarget:
     macOS: "11.0"
   createIntermediateGroups: true
+  generateTargetsWithSharedSchemes: true
 
 targets:
   MacTokenExtension:
@@ -11,25 +12,29 @@ targets:
     platform: macOS
     deploymentTarget: "11.0"
     sources:
-      - ExtensionMain.m
-      - TokenDriver.h
-      - TokenDriver.m
-      - Token.h
-      - Token.m
-      - TokenSession.h
-      - TokenSession.m
+      - path: mac-provider/ExtensionMain.m
+      - path: mac-provider/TokenDriver.h
+      - path: mac-provider/TokenDriver.m
+      - path: mac-provider/Token.h
+      - path: mac-provider/Token.m
+      - path: mac-provider/TokenSession.h
+      - path: mac-provider/TokenSession.m
     dependencies:
       - sdk: Foundation.framework
       - sdk: Security.framework
       - sdk: CryptoTokenKit.framework
       - sdk: libresolv.tbd
+    postBuildScripts:
+      - name: "Copy Certs Resources"
+        script: |
+          DEST_DIR="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/certs"
+          mkdir -p "$DEST_DIR"
+          cp -R "${PROJECT_DIR}/certs/"* "$DEST_DIR/"
     preBuildScripts:
       - name: "Build Go C-Archive (libctkbridge.a)"
         script: |
           if [ -f "$PROJECT_DIR/go.mod" ]; then
             cd "$PROJECT_DIR"
-          elif [ -f "$PROJECT_DIR/../go.mod" ]; then
-            cd "$PROJECT_DIR/.."
           fi
           export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
           mkdir -p build
@@ -60,34 +65,40 @@ targets:
       base:
         DEVELOPMENT_TEAM: 8Z93635RW6
         PRODUCT_BUNDLE_IDENTIFIER: com.fredprx.mactoken.app.extension
-        INFOPLIST_FILE: Extension-Info.plist
-        CODE_SIGN_ENTITLEMENTS: extension.entitlements
+        INFOPLIST_FILE: mac-provider/Extension-Info.plist
+        CODE_SIGN_ENTITLEMENTS: mac-provider/extension.entitlements
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_IDENTITY: "-"
-        HEADER_SEARCH_PATHS: "$(PROJECT_DIR)/../build $(PROJECT_DIR)"
-        LIBRARY_SEARCH_PATHS: "$(PROJECT_DIR)/../build"
-        OTHER_LDFLAGS: "$(PROJECT_DIR)/../build/libctkbridge.a -lresolv -lpthread"
+        HEADER_SEARCH_PATHS: "$(PROJECT_DIR)/build $(PROJECT_DIR)/mac-provider"
+        LIBRARY_SEARCH_PATHS: "$(PROJECT_DIR)/build"
+        OTHER_LDFLAGS: "$(PROJECT_DIR)/build/libctkbridge.a -lresolv -lpthread"
 
   MacTokenApp:
     type: application
     platform: macOS
     deploymentTarget: "11.0"
     sources:
-      - AppMain.m
+      - path: mac-provider/AppMain.m
     dependencies:
       - target: MacTokenExtension
         embed: true
       - sdk: Cocoa.framework
       - sdk: Security.framework
       - sdk: libresolv.tbd
+    postBuildScripts:
+      - name: "Copy Certs Resources"
+        script: |
+          DEST_DIR="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/certs"
+          mkdir -p "$DEST_DIR"
+          cp -R "${PROJECT_DIR}/certs/"* "$DEST_DIR/"
     settings:
       base:
         DEVELOPMENT_TEAM: 8Z93635RW6
         PRODUCT_BUNDLE_IDENTIFIER: com.fredprx.mactoken.app
-        INFOPLIST_FILE: App-Info.plist
-        CODE_SIGN_ENTITLEMENTS: app.entitlements
+        INFOPLIST_FILE: mac-provider/App-Info.plist
+        CODE_SIGN_ENTITLEMENTS: mac-provider/app.entitlements
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_IDENTITY: "-"
-        HEADER_SEARCH_PATHS: "$(PROJECT_DIR)/../build $(PROJECT_DIR)"
-        LIBRARY_SEARCH_PATHS: "$(PROJECT_DIR)/../build"
-        OTHER_LDFLAGS: "$(PROJECT_DIR)/../build/libctkbridge.a -lresolv -lpthread"
+        HEADER_SEARCH_PATHS: "$(PROJECT_DIR)/build $(PROJECT_DIR)/mac-provider"
+        LIBRARY_SEARCH_PATHS: "$(PROJECT_DIR)/build"
+        OTHER_LDFLAGS: "$(PROJECT_DIR)/build/libctkbridge.a -lresolv -lpthread"

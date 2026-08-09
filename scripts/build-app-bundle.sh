@@ -128,8 +128,5 @@ codesign -s - --force --entitlements "$ROOT_DIR/mac-provider/extension.entitleme
 codesign -s - --force --entitlements "$ROOT_DIR/mac-provider/app.entitlements" "$APP_DIR"
 
 
-echo "=== 6. Registering CTK Extension with pluginkit ==="
-pluginkit -a "$EXT_DIR"
-
 echo "=== Build Complete! App bundle created at build/MacTokenApp.app ==="
 

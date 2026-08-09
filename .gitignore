@@ -6,3 +6,16 @@ build/
 *.obj
 .DS_Store
 *.app
+
+# Xcode user settings and build artifacts
+xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/
+*.xcscmblueprint
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.pbxuser
+
