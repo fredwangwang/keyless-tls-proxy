@@ -5,6 +5,27 @@ options:
     macOS: "11.0"
   createIntermediateGroups: true
   generateTargetsWithSharedSchemes: true
+  postGenCommand: "python3 -c \"import re; p='MacTokenApp.xcodeproj/xcshareddata/xcschemes/MacTokenExtension.xcscheme'; txt=open(p).read(); txt=txt.replace('launchStyle = \\\"0\\\"', 'launchStyle = \\\"1\\\"').replace('selectedDebuggerIdentifier = \\\"\\\"', 'selectedDebuggerIdentifier = \\\"Xcode.DebuggerFoundation.Debugger.LLDB\\\"').replace('selectedLauncherIdentifier = \\\"Xcode.IDEFoundation.Launcher.PosixSpawn\\\"', 'selectedLauncherIdentifier = \\\"Xcode.DebuggerFoundation.Launcher.LLDB\\\"'); open(p,'w').write(txt)\""
+
+schemes:
+  MacTokenApp:
+    build:
+      targets:
+        MacTokenApp: all
+        MacTokenExtension: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+  MacTokenExtension:
+    build:
+      targets:
+        MacTokenExtension: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+
 
 targets:
   MacTokenExtension:
@@ -68,7 +89,8 @@ targets:
         INFOPLIST_FILE: mac-provider/Extension-Info.plist
         CODE_SIGN_ENTITLEMENTS: mac-provider/extension.entitlements
         CODE_SIGN_STYLE: Automatic
-        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_IDENTITY: "Apple Development"
+        OTHER_CODE_SIGN_FLAGS: "--team-identifier 8Z93635RW6"
         HEADER_SEARCH_PATHS: "$(PROJECT_DIR)/build $(PROJECT_DIR)/mac-provider"
         LIBRARY_SEARCH_PATHS: "$(PROJECT_DIR)/build"
         OTHER_LDFLAGS: "$(PROJECT_DIR)/build/libctkbridge.a -lresolv -lpthread"
@@ -98,7 +120,8 @@ targets:
         INFOPLIST_FILE: mac-provider/App-Info.plist
         CODE_SIGN_ENTITLEMENTS: mac-provider/app.entitlements
         CODE_SIGN_STYLE: Automatic
-        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_IDENTITY: "Apple Development"
+        OTHER_CODE_SIGN_FLAGS: "--team-identifier 8Z93635RW6"
         HEADER_SEARCH_PATHS: "$(PROJECT_DIR)/build $(PROJECT_DIR)/mac-provider"
         LIBRARY_SEARCH_PATHS: "$(PROJECT_DIR)/build"
         OTHER_LDFLAGS: "$(PROJECT_DIR)/build/libctkbridge.a -lresolv -lpthread"

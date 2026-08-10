@@ -21,6 +21,7 @@ cp -R "$ROOT_DIR/certs/"* "$EXT_CONTENTS_DIR/Resources/certs/"
 
 echo "=== 1. Building Go C-Archive (libctkbridge.a) ==="
 cd "$ROOT_DIR"
+rm -f build/libctkbridge.a build/libctkbridge.h
 CGO_ENABLED=1 go build -buildmode=c-archive -o build/libctkbridge.a ./internal/ctkbridge
 
 echo "=== 2. Compiling App Extension Binary ==="
@@ -124,8 +125,15 @@ cat << 'EOF' > "$EXT_CONTENTS_DIR/Info.plist"
 EOF
 
 echo "=== 5. Code Signing App Bundle with Entitlements ==="
-codesign -s - --force --entitlements "$ROOT_DIR/mac-provider/extension.entitlements" "$EXT_DIR"
-codesign -s - --force --entitlements "$ROOT_DIR/mac-provider/app.entitlements" "$APP_DIR"
+CODE_SIGN_IDENTITY=$(security find-identity -v -p codesigning | grep "Apple Development" | head -n 1 | awk -F '"' '{print $2}')
+if [ -z "$CODE_SIGN_IDENTITY" ]; then
+    CODE_SIGN_IDENTITY="-"
+fi
+echo "Using Signing Identity: $CODE_SIGN_IDENTITY"
+
+codesign -s "$CODE_SIGN_IDENTITY" --force --team-identifier 8Z93635RW6 --entitlements "$ROOT_DIR/mac-provider/extension.entitlements" "$EXT_DIR"
+codesign -s "$CODE_SIGN_IDENTITY" --force --team-identifier 8Z93635RW6 --entitlements "$ROOT_DIR/mac-provider/app.entitlements" "$APP_DIR"
+
 
 
 echo "=== Build Complete! App bundle created at build/MacTokenApp.app ==="

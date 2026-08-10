@@ -310,7 +310,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "mac-provider/app.entitlements";
-				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = 8Z93635RW6;
@@ -322,6 +322,7 @@
 				);
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/build";
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				OTHER_CODE_SIGN_FLAGS = "--team-identifier 8Z93635RW6";
 				OTHER_LDFLAGS = "$(PROJECT_DIR)/build/libctkbridge.a -lresolv -lpthread";
 				PRODUCT_BUNDLE_IDENTIFIER = com.fredprx.mactoken.app;
 				SDKROOT = macosx;
@@ -333,7 +334,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "mac-provider/app.entitlements";
-				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = 8Z93635RW6;
@@ -345,6 +346,7 @@
 				);
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/build";
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				OTHER_CODE_SIGN_FLAGS = "--team-identifier 8Z93635RW6";
 				OTHER_LDFLAGS = "$(PROJECT_DIR)/build/libctkbridge.a -lresolv -lpthread";
 				PRODUCT_BUNDLE_IDENTIFIER = com.fredprx.mactoken.app;
 				SDKROOT = macosx;
@@ -474,7 +476,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "mac-provider/extension.entitlements";
-				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = 8Z93635RW6;
@@ -487,6 +489,7 @@
 				);
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/build";
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				OTHER_CODE_SIGN_FLAGS = "--team-identifier 8Z93635RW6";
 				OTHER_LDFLAGS = "$(PROJECT_DIR)/build/libctkbridge.a -lresolv -lpthread";
 				PRODUCT_BUNDLE_IDENTIFIER = com.fredprx.mactoken.app.extension;
 				SDKROOT = macosx;
@@ -497,7 +500,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "mac-provider/extension.entitlements";
-				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = 8Z93635RW6;
@@ -510,6 +513,7 @@
 				);
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/build";
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				OTHER_CODE_SIGN_FLAGS = "--team-identifier 8Z93635RW6";
 				OTHER_LDFLAGS = "$(PROJECT_DIR)/build/libctkbridge.a -lresolv -lpthread";
 				PRODUCT_BUNDLE_IDENTIFIER = com.fredprx.mactoken.app.extension;
 				SDKROOT = macosx;
