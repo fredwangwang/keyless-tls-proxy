@@ -65,6 +65,34 @@ static NSArray<TKTokenKeychainItem *> *fetchKeychainItemsFromBridge(void) {
     return items;
 }
 
+static void writeRandomSettingsToAppGroup(void) {
+    NSString *appGroupID = @"8Z93635RW6.com.fredprx.mactoken.shareddata";
+    NSURL *groupContainerURL = [[NSFileManager defaultManager] containerURLForSecurityApplicationGroupIdentifier:appGroupID];
+    
+    if (!groupContainerURL) {
+        NSLog(@"AppMain error: Failed to obtain container URL for App Group identifier '%@'. Verify sandbox and entitlement settings.", appGroupID);
+        return;
+    }
+
+    NSURL *plistURL = [groupContainerURL URLByAppendingPathComponent:@"settings.plist"];
+    NSDictionary *settings = @{
+        @"ServerAddress": @"192.168.0.133:50051",
+        @"LogLevel": @"DEBUG",
+        @"SessionTimeout": @(arc4random_uniform(3600) + 300),
+        @"EnableTLS": @YES,
+        @"RandomSeed": @(arc4random_uniform(100000)),
+        @"LastUpdated": [[NSDate date] description]
+    };
+
+    NSError *error = nil;
+    BOOL success = [settings writeToURL:plistURL error:&error];
+    if (success) {
+        NSLog(@"AppMain: Successfully wrote random settings plist to App Group container at: %@", plistURL.path);
+    } else {
+        NSLog(@"AppMain error: Failed to write settings plist to %@: %@", plistURL.path, error.localizedDescription);
+    }
+}
+
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 @property (strong) NSWindow *window;
 @end
@@ -72,6 +100,8 @@ static NSArray<TKTokenKeychainItem *> *fetchKeychainItemsFromBridge(void) {
 @implementation AppDelegate
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
+    writeRandomSettingsToAppGroup();
+
     NSRect frame = NSMakeRect(100, 100, 520, 200);
     NSUInteger style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable;
     self.window = [[NSWindow alloc] initWithContentRect:frame styleMask:style backing:NSBackingStoreBuffered defer:NO];

@@ -4,8 +4,30 @@
 
 extern int NSExtensionMain(int argc, const char *argv[]);
 
+static void readSettingsFromAppGroup(void) {
+    NSString *appGroupID = @"8Z93635RW6.com.fredprx.mactoken.shareddata";
+    NSURL *groupContainerURL = [[NSFileManager defaultManager] containerURLForSecurityApplicationGroupIdentifier:appGroupID];
+    
+    if (!groupContainerURL) {
+        NSLog(@"ExtensionMain error: Failed to obtain container URL for App Group identifier '%@'. Verify sandbox and entitlement settings.", appGroupID);
+        return;
+    }
+
+    NSURL *plistURL = [groupContainerURL URLByAppendingPathComponent:@"settings.plist"];
+    NSError *error = nil;
+    NSDictionary *settings = [NSDictionary dictionaryWithContentsOfURL:plistURL error:&error];
+    if (settings) {
+        NSString *lastUpdated = settings[@"LastUpdated"];
+        NSLog(@"ExtensionMain: Read settings.plist from App Group container. LastUpdated: %@", lastUpdated);
+    } else {
+        NSLog(@"ExtensionMain error: Failed to read settings plist from %@: %@", plistURL.path, error ? error.localizedDescription : @"Unknown error");
+    }
+}
+
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
+        readSettingsFromAppGroup();
+
         NSBundle *bundle = [NSBundle mainBundle];
         NSString *ca = [bundle pathForResource:@"ca" ofType:@"crt" inDirectory:@"certs"];
         NSString *cert = [bundle pathForResource:@"client" ofType:@"crt" inDirectory:@"certs"];
@@ -21,3 +43,4 @@ int main(int argc, const char * argv[]) {
     }
     return NSExtensionMain(argc, argv);
 }
+
