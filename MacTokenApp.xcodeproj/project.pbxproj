@@ -11,7 +11,6 @@
 		1F440A68564C957462255C8F /* TokenSession.m in Sources */ = {isa = PBXBuildFile; fileRef = D42C1F7C2466FC2251973740 /* TokenSession.m */; };
 		4B4E7E835D61BADDC0B1CE9A /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1B0E882AC6CBE1BF7B832E00 /* Security.framework */; };
 		777B031107AE01D9FD4BE4B5 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1B0E882AC6CBE1BF7B832E00 /* Security.framework */; };
-		9153D11C40B4EF01AEEC4985 /* ExtensionMain.m in Sources */ = {isa = PBXBuildFile; fileRef = ADD0C569200488A36182DFC4 /* ExtensionMain.m */; };
 		B3AAC9F214E182BF44D87AE1 /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 08F284C65DAE26031F5D5883 /* libresolv.tbd */; };
 		C6B8A597C4B0285D3FDBD264 /* TokenDriver.m in Sources */ = {isa = PBXBuildFile; fileRef = E11FFAAEE60AD8953BB083B7 /* TokenDriver.m */; };
 		D41D55F4E3A004655B9D558D /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 08F284C65DAE26031F5D5883 /* libresolv.tbd */; };
@@ -57,7 +56,6 @@
 		5BEF959E8E80CF12FA4A4699 /* TokenDriver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TokenDriver.h; sourceTree = "<group>"; };
 		5E8D2518AFC05CA7461D71E7 /* AppMain.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppMain.m; sourceTree = "<group>"; };
 		9B01A5C498DE6A4E9DA50D80 /* MacTokenApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacTokenApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		ADD0C569200488A36182DFC4 /* ExtensionMain.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ExtensionMain.m; sourceTree = "<group>"; };
 		BA1AA1F62ECAA0E8E922E580 /* Token.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Token.h; sourceTree = "<group>"; };
 		D42C1F7C2466FC2251973740 /* TokenSession.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TokenSession.m; sourceTree = "<group>"; };
 		E11FFAAEE60AD8953BB083B7 /* TokenDriver.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TokenDriver.m; sourceTree = "<group>"; };
@@ -93,7 +91,6 @@
 			isa = PBXGroup;
 			children = (
 				5E8D2518AFC05CA7461D71E7 /* AppMain.m */,
-				ADD0C569200488A36182DFC4 /* ExtensionMain.m */,
 				BA1AA1F62ECAA0E8E922E580 /* Token.h */,
 				0E20B87F6BE9658D10B51C5D /* Token.m */,
 				5BEF959E8E80CF12FA4A4699 /* TokenDriver.h */,
@@ -226,15 +223,27 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
+				"$(PROJECT_DIR)/go.mod",
+				"$(PROJECT_DIR)/go.sum",
+				"$(PROJECT_DIR)/internal/ctkbridge/bridge.go",
+				"$(PROJECT_DIR)/internal/kspclient/client.go",
+				"$(PROJECT_DIR)/internal/kspclient/config.go",
+				"$(PROJECT_DIR)/internal/kspcommon/paths.go",
+				"$(PROJECT_DIR)/internal/kspmanifest/manifest.go",
+				"$(PROJECT_DIR)/internal/tlsutil/tls.go",
+				"$(PROJECT_DIR)/gen/cert/v1/cert.pb.go",
+				"$(PROJECT_DIR)/gen/cert/v1/cert_grpc.pb.go",
 			);
 			name = "Build Go C-Archive (libctkbridge.a)";
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(PROJECT_DIR)/build/libctkbridge.a",
+				"$(PROJECT_DIR)/build/libctkbridge.h",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ -f \"$PROJECT_DIR/go.mod\" ]; then\n  cd \"$PROJECT_DIR\"\nfi\nexport PATH=\"/usr/local/bin:/opt/homebrew/bin:$PATH\"\nmkdir -p build\nTARGET_ARCHS=\"${ARCHS:-$(uname -m)}\"\nrm -f build/libctkbridge_*.a\nBUILD_LIBS=()\nfor ARCH in $TARGET_ARCHS; do\n    GO_ARCH=\"\"\n    case \"$ARCH\" in\n        arm64|arm64e) GO_ARCH=\"arm64\" ;;\n        x86_64|amd64) GO_ARCH=\"amd64\" ;;\n    esac\n    if [ -n \"$GO_ARCH\" ]; then\n        ARCH_LIB=\"build/libctkbridge_${GO_ARCH}.a\"\n        if [ ! -f \"$ARCH_LIB\" ]; then\n            GOOS=darwin GOARCH=\"$GO_ARCH\" CGO_ENABLED=1 go build -buildmode=c-archive -o \"$ARCH_LIB\" ./internal/ctkbridge\n        fi\n        BUILD_LIBS+=(\"$ARCH_LIB\")\n    fi\ndone\nrm -f build/libctkbridge.a\nif [ ${#BUILD_LIBS[@]} -eq 1 ]; then\n    cp \"${BUILD_LIBS[0]}\" build/libctkbridge.a\nelif [ ${#BUILD_LIBS[@]} -gt 1 ]; then\n    lipo -create \"${BUILD_LIBS[@]}\" -output build/libctkbridge.a\nfi\n";
+			shellScript = "if [ -f \"$PROJECT_DIR/go.mod\" ]; then\n  cd \"$PROJECT_DIR\"\nfi\nexport PATH=\"/usr/local/bin:/opt/homebrew/bin:$PATH\"\nmkdir -p build\nTARGET_ARCHS=\"${ARCHS:-$(uname -m)}\"\nrm -f build/libctkbridge_*.a build/libctkbridge_*.h\nBUILD_LIBS=()\nLAST_HEADER=\"\"\nfor ARCH in $TARGET_ARCHS; do\n    GO_ARCH=\"\"\n    case \"$ARCH\" in\n        arm64|arm64e) GO_ARCH=\"arm64\" ;;\n        x86_64|amd64) GO_ARCH=\"amd64\" ;;\n    esac\n    if [ -n \"$GO_ARCH\" ]; then\n        ARCH_LIB=\"build/libctkbridge_${GO_ARCH}.a\"\n        ARCH_HDR=\"build/libctkbridge_${GO_ARCH}.h\"\n        if [ ! -f \"$ARCH_LIB\" ]; then\n            GOOS=darwin GOARCH=\"$GO_ARCH\" CGO_ENABLED=1 go build -buildmode=c-archive -o \"$ARCH_LIB\" ./internal/ctkbridge\n        fi\n        BUILD_LIBS+=(\"$ARCH_LIB\")\n        LAST_HEADER=\"$ARCH_HDR\"\n    fi\ndone\nrm -f build/libctkbridge.a build/libctkbridge.h\nif [ -n \"$LAST_HEADER\" ] && [ -f \"$LAST_HEADER\" ]; then\n    cp \"$LAST_HEADER\" build/libctkbridge.h\nfi\nif [ ${#BUILD_LIBS[@]} -eq 1 ]; then\n    cp \"${BUILD_LIBS[0]}\" build/libctkbridge.a\nelif [ ${#BUILD_LIBS[@]} -gt 1 ]; then\n    lipo -create \"${BUILD_LIBS[@]}\" -output build/libctkbridge.a\nfi\n";
 		};
 		785FFF7D97D566D4BB10D831 /* Copy Certs Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -287,7 +296,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9153D11C40B4EF01AEEC4985 /* ExtensionMain.m in Sources */,
 				0C743323ED8563C79433A636 /* Token.m in Sources */,
 				C6B8A597C4B0285D3FDBD264 /* TokenDriver.m in Sources */,
 				1F440A68564C957462255C8F /* TokenSession.m in Sources */,

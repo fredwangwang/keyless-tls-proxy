@@ -24,11 +24,20 @@ echo "=== 3. Registering App Extension with pluginkit ==="
 if [ -d "$EXT_PATH" ]; then
     echo "Registering extension at $EXT_PATH with pluginkit -a..."
     pluginkit -a "$EXT_PATH"
+    echo "Enabling extension with pluginkit -e use..."
+    pluginkit -e use -i com.fredprx.mactoken.app.extension
     echo "Plugin info:"
     pluginkit -m -v -i com.fredprx.mactoken.app.extension || true
 else
     echo "Error: Extension not found at $EXT_PATH"
     exit 1
 fi
+
+echo "=== 4. Syncing Token Configuration ==="
+echo "Running MacTokenApp to sync driver configuration..."
+/Applications/MacTokenApp.app/Contents/MacOS/MacTokenApp 2>&1 &
+APP_PID=$!
+sleep 2
+kill $APP_PID 2>/dev/null || true
 
 echo "=== Installation Complete! MacTokenApp installed to /Applications/MacTokenApp.app ==="

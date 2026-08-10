@@ -33,7 +33,6 @@ targets:
     platform: macOS
     deploymentTarget: "11.0"
     sources:
-      - path: mac-provider/ExtensionMain.m
       - path: mac-provider/TokenDriver.h
       - path: mac-provider/TokenDriver.m
       - path: mac-provider/Token.h
@@ -53,6 +52,20 @@ targets:
           cp -R "${PROJECT_DIR}/certs/"* "$DEST_DIR/"
     preBuildScripts:
       - name: "Build Go C-Archive (libctkbridge.a)"
+        inputFiles:
+          - $(PROJECT_DIR)/go.mod
+          - $(PROJECT_DIR)/go.sum
+          - $(PROJECT_DIR)/internal/ctkbridge/bridge.go
+          - $(PROJECT_DIR)/internal/kspclient/client.go
+          - $(PROJECT_DIR)/internal/kspclient/config.go
+          - $(PROJECT_DIR)/internal/kspcommon/paths.go
+          - $(PROJECT_DIR)/internal/kspmanifest/manifest.go
+          - $(PROJECT_DIR)/internal/tlsutil/tls.go
+          - $(PROJECT_DIR)/gen/cert/v1/cert.pb.go
+          - $(PROJECT_DIR)/gen/cert/v1/cert_grpc.pb.go
+        outputFiles:
+          - $(PROJECT_DIR)/build/libctkbridge.a
+          - $(PROJECT_DIR)/build/libctkbridge.h
         script: |
           if [ -f "$PROJECT_DIR/go.mod" ]; then
             cd "$PROJECT_DIR"
@@ -60,8 +73,9 @@ targets:
           export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
           mkdir -p build
           TARGET_ARCHS="${ARCHS:-$(uname -m)}"
-          rm -f build/libctkbridge_*.a
+          rm -f build/libctkbridge_*.a build/libctkbridge_*.h
           BUILD_LIBS=()
+          LAST_HEADER=""
           for ARCH in $TARGET_ARCHS; do
               GO_ARCH=""
               case "$ARCH" in
@@ -70,13 +84,18 @@ targets:
               esac
               if [ -n "$GO_ARCH" ]; then
                   ARCH_LIB="build/libctkbridge_${GO_ARCH}.a"
+                  ARCH_HDR="build/libctkbridge_${GO_ARCH}.h"
                   if [ ! -f "$ARCH_LIB" ]; then
                       GOOS=darwin GOARCH="$GO_ARCH" CGO_ENABLED=1 go build -buildmode=c-archive -o "$ARCH_LIB" ./internal/ctkbridge
                   fi
                   BUILD_LIBS+=("$ARCH_LIB")
+                  LAST_HEADER="$ARCH_HDR"
               fi
           done
-          rm -f build/libctkbridge.a
+          rm -f build/libctkbridge.a build/libctkbridge.h
+          if [ -n "$LAST_HEADER" ] && [ -f "$LAST_HEADER" ]; then
+              cp "$LAST_HEADER" build/libctkbridge.h
+          fi
           if [ ${#BUILD_LIBS[@]} -eq 1 ]; then
               cp "${BUILD_LIBS[0]}" build/libctkbridge.a
           elif [ ${#BUILD_LIBS[@]} -gt 1 ]; then
