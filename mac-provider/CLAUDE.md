@@ -2,9 +2,9 @@
 
 To verify that the extension is properly registered and signed correctly:
 
-1. Register/add the app extension:
+1. Build, install to /Applications, and register the app extension:
    ```bash
-   pluginkit -a <path-to-extension>
+   ./scripts/install-app-mac.sh
    ```
 
 2. Run the signing test to verify correct signing:
