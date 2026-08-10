@@ -14,18 +14,39 @@ import (
 	"tpm-cert-proxy/internal/winstore"
 )
 
-func main() {
-	message := flag.String("message", "", "message to hash and sign (prompts if empty)")
-	padding := flag.String("padding", "", "RSA padding: pkcs1 or pss (prompts if empty)")
-	flag.Parse()
+func cleanThumbprint(tp string) string {
+	tp = strings.ToUpper(strings.TrimSpace(tp))
+	tp = strings.ReplaceAll(tp, ":", "")
+	tp = strings.ReplaceAll(tp, " ", "")
+	tp = strings.ReplaceAll(tp, "-", "")
+	return tp
+}
 
-	certs, err := winstore.ListCertificates()
-	if err != nil {
-		fatal(err)
-	}
+func selectCertificate(certs []winstore.WinCertInfo, targetThumbprint string, reader *bufio.Reader) (winstore.WinCertInfo, error) {
+	if targetThumbprint != "" {
+		cleaned := cleanThumbprint(targetThumbprint)
+		var matches []winstore.WinCertInfo
+		for _, c := range certs {
+			if cleanThumbprint(c.Thumbprint) == cleaned {
+				matches = append(matches, c)
+			}
+		}
+		if len(matches) == 0 {
+			for _, c := range certs {
+				if strings.HasPrefix(cleanThumbprint(c.Thumbprint), cleaned) {
+					matches = append(matches, c)
+				}
+			}
+		}
 
-	if len(certs) == 0 {
-		fatal(fmt.Errorf("no certificates with private keys found in the Windows MY store"))
+		if len(matches) == 1 {
+			fmt.Printf("Selected certificate: %s (%s)\n\n", matches[0].Subject, matches[0].Thumbprint)
+			return matches[0], nil
+		}
+		if len(matches) > 1 {
+			return winstore.WinCertInfo{}, fmt.Errorf("ambiguous thumbprint %q matched %d certificates", targetThumbprint, len(matches))
+		}
+		return winstore.WinCertInfo{}, fmt.Errorf("no certificate found matching thumbprint %q", targetThumbprint)
 	}
 
 	fmt.Println("Available certificates:")
@@ -46,12 +67,39 @@ func main() {
 		)
 	}
 
-	reader := bufio.NewReader(os.Stdin)
 	idx, err := readChoice(reader, len(certs))
+	if err != nil {
+		return winstore.WinCertInfo{}, err
+	}
+	return certs[idx], nil
+}
+
+func main() {
+	message := flag.String("message", "", "message to hash and sign (prompts if empty)")
+	padding := flag.String("padding", "", "RSA padding: pkcs1 or pss (prompts if empty)")
+	thumbprint := flag.String("thumbprint", "", "certificate thumbprint (hex) to select (prompts if empty)")
+	cert := flag.String("cert", "", "alias for -thumbprint")
+	flag.Parse()
+
+	targetThumbprint := *thumbprint
+	if targetThumbprint == "" {
+		targetThumbprint = *cert
+	}
+
+	certs, err := winstore.ListCertificates()
 	if err != nil {
 		fatal(err)
 	}
-	selected := certs[idx]
+
+	if len(certs) == 0 {
+		fatal(fmt.Errorf("no certificates with private keys found in the Windows MY store"))
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+	selected, err := selectCertificate(certs, targetThumbprint, reader)
+	if err != nil {
+		fatal(err)
+	}
 
 	text := *message
 	if text == "" {
