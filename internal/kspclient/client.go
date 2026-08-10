@@ -23,6 +23,7 @@ const listCacheTTL = 30 * time.Second
 type KeyInfo struct {
 	Thumbprint     string
 	Subject        string
+	Issuer         string
 	KeyAlgorithm   string
 	KeySize        int32
 	CertificateDER []byte
@@ -104,6 +105,12 @@ func (c *Client) Close() error {
 	return nil
 }
 
+// Ping calls ListCertificates on the remote server to verify connectivity.
+func (c *Client) Ping(ctx context.Context) error {
+	_, err := c.rpc.ListCertificates(ctx, &certv1.ListCertificatesRequest{})
+	return err
+}
+
 func (c *Client) ReloadManifest() error {
 	tps, err := kspmanifest.InstalledThumbprints()
 	if err != nil {
@@ -133,9 +140,19 @@ func (c *Client) refreshRemoteListLocked(ctx context.Context) error {
 		info := KeyInfo{
 			Thumbprint:     kspmanifest.NormalizeThumbprint(cert.Thumbprint),
 			Subject:        cert.Subject,
+			Issuer:         cert.Issuer,
 			KeyAlgorithm:   cert.KeyAlgorithm,
 			KeySize:        cert.KeySize,
 			CertificateDER: append([]byte(nil), cert.CertificateDer...),
+		}
+		if info.Issuer == "" && len(cert.CertificateDer) > 0 {
+			if parsed, err := x509.ParseCertificate(cert.CertificateDer); err == nil {
+				if parsed.Issuer.CommonName != "" {
+					info.Issuer = "CN=" + parsed.Issuer.CommonName
+				} else {
+					info.Issuer = parsed.Issuer.String()
+				}
+			}
 		}
 		if cert.KeyAlgorithm == "RSA" && len(cert.CertificateDer) > 0 {
 			blob, err := rsaPublicBlobFromDER(cert.CertificateDer)

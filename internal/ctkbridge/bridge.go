@@ -8,6 +8,7 @@ package main
 typedef struct {
 	char thumbprint[64];
 	char subject[512];
+	char issuer[512];
 	char key_algorithm[32];
 	int32_t key_size;
 	uint8_t* cert_der;
@@ -75,6 +76,23 @@ func ctk_bridge_shutdown() {
 	kspclient.ShutdownGlobal()
 }
 
+//export ctk_bridge_ping
+func ctk_bridge_ping() C.int {
+	c := kspclient.Global()
+	if c == nil {
+		fmt.Println("ctk_bridge_ping: Global client is NIL!")
+		return codeErr
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := c.Ping(ctx); err != nil {
+		fmt.Printf("ctk_bridge_ping error: %v\n", err)
+		return codeErr
+	}
+	return codeOK
+}
+
 //export ctk_bridge_installed_count
 func ctk_bridge_installed_count() C.int {
 	c := kspclient.Global()
@@ -97,6 +115,7 @@ func ctk_bridge_installed_count() C.int {
 func fillCtkKeyInfo(out *C.ctk_key_info, k kspclient.KeyInfo) {
 	copyToCChars((*C.char)(unsafe.Pointer(&out.thumbprint[0])), C.int(len(out.thumbprint)), k.Thumbprint)
 	copyToCChars((*C.char)(unsafe.Pointer(&out.subject[0])), C.int(len(out.subject)), k.Subject)
+	copyToCChars((*C.char)(unsafe.Pointer(&out.issuer[0])), C.int(len(out.issuer)), k.Issuer)
 	copyToCChars((*C.char)(unsafe.Pointer(&out.key_algorithm[0])), C.int(len(out.key_algorithm)), k.KeyAlgorithm)
 	out.key_size = C.int32_t(k.KeySize)
 	if len(k.CertificateDER) > 0 {
