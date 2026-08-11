@@ -241,7 +241,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ -f \"$PROJECT_DIR/go.mod\" ]; then\n  cd \"$PROJECT_DIR\"\nfi\nexport PATH=\"/usr/local/bin:/opt/homebrew/bin:$PATH\"\nmkdir -p build\nTARGET_ARCHS=\"${ARCHS:-$(uname -m)}\"\nrm -f build/libctkbridge_*.a build/libctkbridge_*.h\nBUILD_LIBS=()\nLAST_HEADER=\"\"\nfor ARCH in $TARGET_ARCHS; do\n    GO_ARCH=\"\"\n    case \"$ARCH\" in\n        arm64|arm64e) GO_ARCH=\"arm64\" ;;\n        x86_64|amd64) GO_ARCH=\"amd64\" ;;\n    esac\n    if [ -n \"$GO_ARCH\" ]; then\n        ARCH_LIB=\"build/libctkbridge_${GO_ARCH}.a\"\n        ARCH_HDR=\"build/libctkbridge_${GO_ARCH}.h\"\n        if [ ! -f \"$ARCH_LIB\" ]; then\n            GOOS=darwin GOARCH=\"$GO_ARCH\" CGO_ENABLED=1 go build -buildmode=c-archive -o \"$ARCH_LIB\" ./internal/ctkbridge\n        fi\n        BUILD_LIBS+=(\"$ARCH_LIB\")\n        LAST_HEADER=\"$ARCH_HDR\"\n    fi\ndone\nrm -f build/libctkbridge.a build/libctkbridge.h\nif [ -n \"$LAST_HEADER\" ] && [ -f \"$LAST_HEADER\" ]; then\n    cp \"$LAST_HEADER\" build/libctkbridge.h\nfi\nif [ ${#BUILD_LIBS[@]} -eq 1 ]; then\n    cp \"${BUILD_LIBS[0]}\" build/libctkbridge.a\nelif [ ${#BUILD_LIBS[@]} -gt 1 ]; then\n    lipo -create \"${BUILD_LIBS[@]}\" -output build/libctkbridge.a\nfi\n";
+			shellScript = "if [ -f \"$PROJECT_DIR/go.mod\" ]; then\n  cd \"$PROJECT_DIR\"\nfi\nexport PATH=\"/usr/local/bin:/opt/homebrew/bin:$PATH\"\nexport MACOSX_DEPLOYMENT_TARGET=\"${MACOSX_DEPLOYMENT_TARGET:-26.0}\"\nexport CGO_CFLAGS=\"-mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}\"\nexport CGO_LDFLAGS=\"-mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}\"\nmkdir -p build\nTARGET_ARCHS=\"${ARCHS:-$(uname -m)}\"\nrm -f build/libctkbridge_*.a build/libctkbridge_*.h\nBUILD_LIBS=()\nLAST_HEADER=\"\"\nfor ARCH in $TARGET_ARCHS; do\n    GO_ARCH=\"\"\n    case \"$ARCH\" in\n        arm64|arm64e) GO_ARCH=\"arm64\" ;;\n        x86_64|amd64) GO_ARCH=\"amd64\" ;;\n    esac\n    if [ -n \"$GO_ARCH\" ]; then\n        ARCH_LIB=\"build/libctkbridge_${GO_ARCH}.a\"\n        ARCH_HDR=\"build/libctkbridge_${GO_ARCH}.h\"\n        if [ ! -f \"$ARCH_LIB\" ]; then\n            GOOS=darwin GOARCH=\"$GO_ARCH\" CGO_ENABLED=1 go build -buildmode=c-archive -o \"$ARCH_LIB\" ./internal/ctkbridge\n        fi\n        BUILD_LIBS+=(\"$ARCH_LIB\")\n        LAST_HEADER=\"$ARCH_HDR\"\n    fi\ndone\nrm -f build/libctkbridge.a build/libctkbridge.h\nif [ -n \"$LAST_HEADER\" ] && [ -f \"$LAST_HEADER\" ]; then\n    cp \"$LAST_HEADER\" build/libctkbridge.h\nfi\nif [ ${#BUILD_LIBS[@]} -eq 1 ]; then\n    cp \"${BUILD_LIBS[0]}\" build/libctkbridge.a\nelif [ ${#BUILD_LIBS[@]} -gt 1 ]; then\n    lipo -create \"${BUILD_LIBS[@]}\" -output build/libctkbridge.a\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -284,19 +284,29 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 8Z93635RW6;
-				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/build $(PROJECT_DIR)/mac-provider";
+				ENABLE_HARDENED_RUNTIME = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/build",
+					"$(PROJECT_DIR)/mac-provider",
+				);
 				INFOPLIST_FILE = "mac-provider/App-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/build";
-				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				OTHER_CODE_SIGN_FLAGS = "--team-identifier 8Z93635RW6";
-				OTHER_LDFLAGS = "$(PROJECT_DIR)/build/libctkbridge.a -lresolv -lpthread";
+				OTHER_LDFLAGS = (
+					"$(PROJECT_DIR)/build/libctkbridge.a",
+					"-lpthread",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.fredprx.mactoken.app;
+				REGISTER_APP_GROUPS = YES;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 			};
 			name = Debug;
 		};
@@ -309,19 +319,29 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 8Z93635RW6;
-				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/build $(PROJECT_DIR)/mac-provider";
+				ENABLE_HARDENED_RUNTIME = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/build",
+					"$(PROJECT_DIR)/mac-provider",
+				);
 				INFOPLIST_FILE = "mac-provider/App-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/build";
-				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				OTHER_CODE_SIGN_FLAGS = "--team-identifier 8Z93635RW6";
-				OTHER_LDFLAGS = "$(PROJECT_DIR)/build/libctkbridge.a -lresolv -lpthread";
+				OTHER_LDFLAGS = (
+					"$(PROJECT_DIR)/build/libctkbridge.a",
+					"-lpthread",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.fredprx.mactoken.app;
+				REGISTER_APP_GROUPS = YES;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 			};
 			name = Release;
 		};
@@ -370,7 +390,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -432,7 +452,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -452,8 +472,13 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 8Z93635RW6;
-				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/build $(PROJECT_DIR)/mac-provider";
+				ENABLE_HARDENED_RUNTIME = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/build",
+					"$(PROJECT_DIR)/mac-provider",
+				);
 				INFOPLIST_FILE = "mac-provider/Extension-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -461,11 +486,16 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/build";
-				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				OTHER_CODE_SIGN_FLAGS = "--team-identifier 8Z93635RW6";
-				OTHER_LDFLAGS = "$(PROJECT_DIR)/build/libctkbridge.a -lresolv -lpthread";
+				OTHER_LDFLAGS = (
+					"$(PROJECT_DIR)/build/libctkbridge.a",
+					"-lpthread",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.fredprx.mactoken.app.extension;
+				REGISTER_APP_GROUPS = YES;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 			};
 			name = Release;
 		};
@@ -477,8 +507,13 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 8Z93635RW6;
-				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/build $(PROJECT_DIR)/mac-provider";
+				ENABLE_HARDENED_RUNTIME = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/build",
+					"$(PROJECT_DIR)/mac-provider",
+				);
 				INFOPLIST_FILE = "mac-provider/Extension-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -486,11 +521,16 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/build";
-				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				OTHER_CODE_SIGN_FLAGS = "--team-identifier 8Z93635RW6";
-				OTHER_LDFLAGS = "$(PROJECT_DIR)/build/libctkbridge.a -lresolv -lpthread";
+				OTHER_LDFLAGS = (
+					"$(PROJECT_DIR)/build/libctkbridge.a",
+					"-lpthread",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.fredprx.mactoken.app.extension;
+				REGISTER_APP_GROUPS = YES;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 			};
 			name = Debug;
 		};

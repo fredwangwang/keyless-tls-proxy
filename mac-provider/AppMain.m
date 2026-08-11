@@ -3,12 +3,17 @@
 #import <Security/Security.h>
 #include "libctkbridge.h"
 
+@interface NSObject (NSUndoManagerActions)
+- (void)undo:(id)sender;
+- (void)redo:(id)sender;
+@end
+
 static NSString *getAppGroupID(void) {
     static NSString *cachedAppGroupID = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         cachedAppGroupID = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"AppGroupID"];
-        NSAssert(cachedAppGroupID.length > 0, @"AppGroupID key is missing from Info.plist");
+        NSCAssert(cachedAppGroupID.length > 0, @"AppGroupID key is missing from Info.plist");
     });
     return cachedAppGroupID;
 }
