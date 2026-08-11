@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	certv1 "tpm-cert-proxy/gen/cert/v1"
-	"tpm-cert-proxy/internal/winstore"
+	certv1 "github.com/fredwangwang/keyless-tls-proxy/gen/cert/v1"
+	"github.com/fredwangwang/keyless-tls-proxy/internal/winstore"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

@@ -10,7 +10,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"tpm-cert-proxy/internal/server"
+	"github.com/fredwangwang/keyless-tls-proxy/internal/server"
 )
 
 func main() {

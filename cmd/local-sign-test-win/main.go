@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"tpm-cert-proxy/internal/winstore"
+	"github.com/fredwangwang/keyless-tls-proxy/internal/winstore"
 )
 
 func cleanThumbprint(tp string) string {

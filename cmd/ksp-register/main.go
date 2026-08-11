@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"tpm-cert-proxy/internal/kspregister"
+	"github.com/fredwangwang/keyless-tls-proxy/internal/kspregister"
 )
 
 func main() {

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unsafe"
 
-	"tpm-cert-proxy/internal/kspcommon"
+	"github.com/fredwangwang/keyless-tls-proxy/internal/kspcommon"
 
 	"golang.org/x/sys/windows"
 )

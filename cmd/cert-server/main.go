@@ -11,9 +11,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	certv1 "tpm-cert-proxy/gen/cert/v1"
-	"tpm-cert-proxy/internal/server"
-	"tpm-cert-proxy/internal/tlsutil"
+	certv1 "github.com/fredwangwang/keyless-tls-proxy/gen/cert/v1"
+	"github.com/fredwangwang/keyless-tls-proxy/internal/server"
+	"github.com/fredwangwang/keyless-tls-proxy/internal/tlsutil"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
