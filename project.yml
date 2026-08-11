@@ -104,6 +104,7 @@ targets:
     settings:
       base:
         DEVELOPMENT_TEAM: 8Z93635RW6
+        APP_GROUP_ID: 8Z93635RW6.group.com.fredprx.mactoken.shareddata
         PRODUCT_BUNDLE_IDENTIFIER: com.fredprx.mactoken.app.extension
         INFOPLIST_FILE: mac-provider/Extension-Info.plist
         CODE_SIGN_ENTITLEMENTS: mac-provider/extension.entitlements
@@ -135,6 +136,7 @@ targets:
     settings:
       base:
         DEVELOPMENT_TEAM: 8Z93635RW6
+        APP_GROUP_ID: 8Z93635RW6.group.com.fredprx.mactoken.shareddata
         PRODUCT_BUNDLE_IDENTIFIER: com.fredprx.mactoken.app
         INFOPLIST_FILE: mac-provider/App-Info.plist
         CODE_SIGN_ENTITLEMENTS: mac-provider/app.entitlements
@@ -144,3 +146,4 @@ targets:
         HEADER_SEARCH_PATHS: "$(PROJECT_DIR)/build $(PROJECT_DIR)/mac-provider"
         LIBRARY_SEARCH_PATHS: "$(PROJECT_DIR)/build"
         OTHER_LDFLAGS: "$(PROJECT_DIR)/build/libctkbridge.a -lresolv -lpthread"
+

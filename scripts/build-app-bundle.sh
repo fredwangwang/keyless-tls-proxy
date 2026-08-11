@@ -8,6 +8,8 @@ CONFIGURATION="${1:-Release}"
 
 echo "=== Building MacTokenApp (configuration: $CONFIGURATION) ==="
 
+xcodegen generate
+
 xcodebuild \
     -project "$ROOT_DIR/MacTokenApp.xcodeproj" \
     -scheme MacTokenApp \

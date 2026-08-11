@@ -20,6 +20,7 @@ import "C"
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 	"unsafe"
 
@@ -35,6 +36,24 @@ const (
 	codeBufferTooSmall = -4
 )
 
+var (
+	lastErrorMu  sync.Mutex
+	lastErrorStr string
+)
+
+func setLastError(msg string) {
+	lastErrorMu.Lock()
+	defer lastErrorMu.Unlock()
+	lastErrorStr = msg
+}
+
+//export ctk_bridge_last_error
+func ctk_bridge_last_error() *C.char {
+	lastErrorMu.Lock()
+	defer lastErrorMu.Unlock()
+	return C.CString(lastErrorStr)
+}
+
 //export ctk_bridge_init
 func ctk_bridge_init(configPath *C.char) C.int {
 	path := ""
@@ -43,17 +62,21 @@ func ctk_bridge_init(configPath *C.char) C.int {
 	}
 	cfg, err := kspclient.LoadConfig(path)
 	if err != nil {
+		setLastError(fmt.Sprintf("load config error: %v", err))
 		return codeErr
 	}
 	if err := kspclient.InitGlobal(cfg); err != nil {
+		setLastError(fmt.Sprintf("init global error: %v", err))
 		return codeErr
 	}
+	setLastError("")
 	return codeOK
 }
 
 //export ctk_bridge_init_opts
 func ctk_bridge_init_opts(addr, ca, cert, key *C.char) C.int {
 	if addr == nil || ca == nil || cert == nil || key == nil {
+		setLastError("ctk_bridge_init_opts: null argument passed")
 		fmt.Println("ctk_bridge_init_opts: null arg passed")
 		return codeErr
 	}
@@ -64,9 +87,11 @@ func ctk_bridge_init_opts(addr, ca, cert, key *C.char) C.int {
 		Key:  C.GoString(key),
 	}
 	if err := kspclient.InitGlobal(cfg); err != nil {
+		setLastError(fmt.Sprintf("%v", err))
 		fmt.Printf("ctk_bridge_init_opts InitGlobal error: %v\n", err)
 		return codeErr
 	}
+	setLastError("")
 	fmt.Printf("ctk_bridge_init_opts InitGlobal success for addr: %s\n", cfg.Addr)
 	return codeOK
 }

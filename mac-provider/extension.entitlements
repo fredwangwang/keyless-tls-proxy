@@ -10,7 +10,7 @@
     <true/>
     <key>com.apple.security.application-groups</key>
     <array>
-        <string>8Z93635RW6.com.fredprx.mactoken.shareddata</string>
+        <string>$(APP_GROUP_ID)</string>
     </array>
 </dict>
 </plist>
