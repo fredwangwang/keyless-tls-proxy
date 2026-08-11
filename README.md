@@ -189,6 +189,7 @@ build\ksp-register.exe -unregister
 | `mac-provider/` | macOS GUI App (`MacTokenApp`) and CryptoTokenKit (CTK) extension (`MacTokenExtension`) sources |
 | `scripts/build-app-bundle.sh` | Build macOS app and extension bundle via `xcodegen` and `xcodebuild` |
 | `scripts/install-app-mac.sh` | Install macOS app bundle to `/Applications` and register CTK plugin |
+| `scripts/build-release-artifacts.sh` | Build all release binaries/zips and optionally publish to GitHub |
 | `scripts/gen-proto.ps1` | Regenerate protobuf code |
 | `scripts/build-ksp.ps1` | Build Windows KSP DLL and helper tools |
 
