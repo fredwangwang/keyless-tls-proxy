@@ -5,21 +5,12 @@ options:
     macOS: "11.0"
   createIntermediateGroups: true
   generateTargetsWithSharedSchemes: true
-  postGenCommand: "python3 -c \"import re; p='MacTokenApp.xcodeproj/xcshareddata/xcschemes/MacTokenExtension.xcscheme'; txt=open(p).read(); txt=txt.replace('launchStyle = \\\"0\\\"', 'launchStyle = \\\"1\\\"').replace('selectedDebuggerIdentifier = \\\"\\\"', 'selectedDebuggerIdentifier = \\\"Xcode.DebuggerFoundation.Debugger.LLDB\\\"').replace('selectedLauncherIdentifier = \\\"Xcode.IDEFoundation.Launcher.PosixSpawn\\\"', 'selectedLauncherIdentifier = \\\"Xcode.DebuggerFoundation.Launcher.LLDB\\\"'); open(p,'w').write(txt)\""
 
 schemes:
   MacTokenApp:
     build:
       targets:
         MacTokenApp: all
-        MacTokenExtension: all
-    run:
-      config: Debug
-    archive:
-      config: Release
-  MacTokenExtension:
-    build:
-      targets:
         MacTokenExtension: all
     run:
       config: Debug
@@ -44,12 +35,6 @@ targets:
       - sdk: Security.framework
       - sdk: CryptoTokenKit.framework
       - sdk: libresolv.tbd
-    postBuildScripts:
-      - name: "Copy Certs Resources"
-        script: |
-          DEST_DIR="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/certs"
-          mkdir -p "$DEST_DIR"
-          cp -R "${PROJECT_DIR}/certs/"* "$DEST_DIR/"
     preBuildScripts:
       - name: "Build Go C-Archive (libctkbridge.a)"
         inputFiles:
@@ -127,12 +112,6 @@ targets:
       - sdk: Cocoa.framework
       - sdk: Security.framework
       - sdk: libresolv.tbd
-    postBuildScripts:
-      - name: "Copy Certs Resources"
-        script: |
-          DEST_DIR="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/certs"
-          mkdir -p "$DEST_DIR"
-          cp -R "${PROJECT_DIR}/certs/"* "$DEST_DIR/"
     settings:
       base:
         DEVELOPMENT_TEAM: 8Z93635RW6
