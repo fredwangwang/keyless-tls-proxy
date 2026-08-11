@@ -92,7 +92,7 @@ The client will:
 |------|-------------|
 | `proto/cert/v1/cert.proto` | gRPC API definition |
 | `gen/cert/v1/` | Generated protobuf/gRPC Go code |
-| `internal/winstore/` | Windows cert store enumeration and NCrypt signing |
+| `internal/certstore/` | Platform certificate store enumeration and signing (Windows NCrypt, macOS Keychain) |
 | `internal/server/` | gRPC service implementation and UDP discovery |
 | `internal/tlsutil/` | mTLS configuration helpers |
 | `cmd/cert-server/` | gRPC server entrypoint |

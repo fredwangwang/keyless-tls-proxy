@@ -1,6 +1,6 @@
-//go:build !windows
+//go:build !windows && !darwin
 
-package winstore
+package certstore
 
 func ListCertificates() ([]CertificateInfo, error) {
 	return nil, ErrUnsupportedPlatform
