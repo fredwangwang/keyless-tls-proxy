@@ -5,10 +5,19 @@ import (
 	"crypto/x509"
 	"fmt"
 	"os"
+	"strings"
 )
 
+func loadPEMOrFile(input string) ([]byte, error) {
+	input = strings.TrimSpace(input)
+	if strings.Contains(input, "-----BEGIN") {
+		return []byte(input), nil
+	}
+	return os.ReadFile(input)
+}
+
 func LoadServerTLSConfig(caPath, certPath, keyPath string) (*tls.Config, error) {
-	caPEM, err := os.ReadFile(caPath)
+	caPEM, err := loadPEMOrFile(caPath)
 	if err != nil {
 		return nil, fmt.Errorf("read CA cert: %w", err)
 	}
@@ -17,7 +26,15 @@ func LoadServerTLSConfig(caPath, certPath, keyPath string) (*tls.Config, error) 
 		return nil, fmt.Errorf("parse CA cert")
 	}
 
-	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
+	certPEM, err := loadPEMOrFile(certPath)
+	if err != nil {
+		return nil, fmt.Errorf("read server cert: %w", err)
+	}
+	keyPEM, err := loadPEMOrFile(keyPath)
+	if err != nil {
+		return nil, fmt.Errorf("read server key: %w", err)
+	}
+	cert, err := tls.X509KeyPair(certPEM, keyPEM)
 	if err != nil {
 		return nil, fmt.Errorf("load server key pair: %w", err)
 	}
@@ -31,7 +48,7 @@ func LoadServerTLSConfig(caPath, certPath, keyPath string) (*tls.Config, error) 
 }
 
 func LoadClientTLSConfig(caPath, certPath, keyPath, serverName string) (*tls.Config, error) {
-	caPEM, err := os.ReadFile(caPath)
+	caPEM, err := loadPEMOrFile(caPath)
 	if err != nil {
 		return nil, fmt.Errorf("read CA cert: %w", err)
 	}
@@ -40,7 +57,15 @@ func LoadClientTLSConfig(caPath, certPath, keyPath, serverName string) (*tls.Con
 		return nil, fmt.Errorf("parse CA cert")
 	}
 
-	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
+	certPEM, err := loadPEMOrFile(certPath)
+	if err != nil {
+		return nil, fmt.Errorf("read client cert: %w", err)
+	}
+	keyPEM, err := loadPEMOrFile(keyPath)
+	if err != nil {
+		return nil, fmt.Errorf("read client key: %w", err)
+	}
+	cert, err := tls.X509KeyPair(certPEM, keyPEM)
 	if err != nil {
 		return nil, fmt.Errorf("load client key pair: %w", err)
 	}

@@ -22,6 +22,8 @@
 	<string>1</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>AppGroupID</key>
+	<string>$(APP_GROUP_ID)</string>
 	<key>LSEnvironment</key>
 	<dict>
 		<key>GODEBUG</key>

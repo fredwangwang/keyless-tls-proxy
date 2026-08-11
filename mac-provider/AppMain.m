@@ -3,6 +3,16 @@
 #import <Security/Security.h>
 #include "libctkbridge.h"
 
+static NSString *getAppGroupID(void) {
+    static NSString *cachedAppGroupID = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        cachedAppGroupID = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"AppGroupID"];
+        NSAssert(cachedAppGroupID.length > 0, @"AppGroupID key is missing from Info.plist");
+    });
+    return cachedAppGroupID;
+}
+
 @interface IdentityItem : NSObject
 @property (nonatomic, copy) NSString *subject;
 @property (nonatomic, copy) NSString *issuer;
@@ -91,32 +101,50 @@ static NSArray<IdentityItem *> *fetchIdentityItemsFromBridge(void) {
     return items;
 }
 
-static void writeRandomSettingsToAppGroup(void) {
-    NSString *appGroupID = @"8Z93635RW6.com.fredprx.mactoken.shareddata";
-    NSURL *groupContainerURL = [[NSFileManager defaultManager] containerURLForSecurityApplicationGroupIdentifier:appGroupID];
-    
-    if (!groupContainerURL) {
-        NSLog(@"AppMain error: Failed to obtain container URL for App Group identifier '%@'. Verify sandbox and entitlement settings.", appGroupID);
-        return;
-    }
+static void setupMainMenu(void) {
+    NSMenu *mainMenu = [[NSMenu alloc] init];
 
-    NSURL *plistURL = [groupContainerURL URLByAppendingPathComponent:@"settings.plist"];
-    NSDictionary *settings = @{
-        @"ServerAddress": @"192.168.0.133:50051",
-        @"LogLevel": @"DEBUG",
-        @"SessionTimeout": @(arc4random_uniform(3600) + 300),
-        @"EnableTLS": @YES,
-        @"RandomSeed": @(arc4random_uniform(100000)),
-        @"LastUpdated": [[NSDate date] description]
-    };
+    // App menu
+    NSMenuItem *appMenuItem = [[NSMenuItem alloc] init];
+    [mainMenu addItem:appMenuItem];
+    NSMenu *appMenu = [[NSMenu alloc] init];
+    NSMenuItem *quitItem = [[NSMenuItem alloc] initWithTitle:@"Quit TPM Cert Proxy"
+                                                      action:@selector(terminate:)
+                                               keyEquivalent:@"q"];
+    [appMenu addItem:quitItem];
+    [appMenuItem setSubmenu:appMenu];
 
-    NSError *error = nil;
-    BOOL success = [settings writeToURL:plistURL error:&error];
-    if (success) {
-        NSLog(@"AppMain: Successfully wrote random settings plist to App Group container at: %@", plistURL.path);
-    } else {
-        NSLog(@"AppMain error: Failed to write settings plist to %@: %@", plistURL.path, error.localizedDescription);
+    // Edit menu (required for Cocoa text fields to process Cmd+C, Cmd+V, Cmd+X, Cmd+A, Cmd+Z)
+    NSMenuItem *editMenuItem = [[NSMenuItem alloc] init];
+    [mainMenu addItem:editMenuItem];
+    NSMenu *editMenu = [[NSMenu alloc] initWithTitle:@"Edit"];
+    [editMenu addItemWithTitle:@"Undo" action:@selector(undo:) keyEquivalent:@"z"];
+    [editMenu addItemWithTitle:@"Redo" action:@selector(redo:) keyEquivalent:@"Z"];
+    [editMenu addItem:[NSMenuItem separatorItem]];
+    [editMenu addItemWithTitle:@"Cut" action:@selector(cut:) keyEquivalent:@"x"];
+    [editMenu addItemWithTitle:@"Copy" action:@selector(copy:) keyEquivalent:@"c"];
+    [editMenu addItemWithTitle:@"Paste" action:@selector(paste:) keyEquivalent:@"v"];
+    [editMenu addItemWithTitle:@"Select All" action:@selector(selectAll:) keyEquivalent:@"a"];
+    [editMenuItem setSubmenu:editMenu];
+
+    [NSApp setMainMenu:mainMenu];
+}
+
+static NSString *resolveContentOrPath(NSString *input) {
+    NSString *trimmed = [input stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if (trimmed.length == 0) return @"";
+    if ([trimmed containsString:@"-----BEGIN"]) {
+        return trimmed;
     }
+    BOOL isDir = NO;
+    if ([[NSFileManager defaultManager] fileExistsAtPath:trimmed isDirectory:&isDir] && !isDir) {
+        NSError *err = nil;
+        NSString *content = [NSString stringWithContentsOfFile:trimmed encoding:NSUTF8StringEncoding error:&err];
+        if (content && [content stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]].length > 0) {
+            return [content stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+        }
+    }
+    return trimmed;
 }
 
 @interface AppDelegate : NSObject <NSApplicationDelegate, NSTableViewDataSource, NSTableViewDelegate>
@@ -128,41 +156,191 @@ static void writeRandomSettingsToAppGroup(void) {
 @property (strong) NSButton *selectAllCheckbox;
 @property (strong) NSTextField *footerLabel;
 @property (strong) TKTokenConfiguration *tokenConfig;
+
+@property (strong) NSTextField *serverAddrField;
+@property (strong) NSTextView *caTextView;
+@property (strong) NSTextView *certTextView;
+@property (strong) NSTextView *keyTextView;
+@property (strong) NSTextField *statusLabel;
 @end
 
 @implementation AppDelegate
 
+- (NSTextView *)createScrollableTextViewInFrame:(NSRect)frame parentView:(NSView *)parentView {
+    NSScrollView *scrollView = [[NSScrollView alloc] initWithFrame:frame];
+    [scrollView setHasVerticalScroller:YES];
+    [scrollView setHasHorizontalScroller:NO];
+    [scrollView setAutohidesScrollers:YES];
+    [scrollView setBorderType:NSBezelBorder];
+    
+    NSSize contentSize = [scrollView contentSize];
+    NSTextView *textView = [[NSTextView alloc] initWithFrame:NSMakeRect(0, 0, contentSize.width, contentSize.height)];
+    [textView setMinSize:NSMakeSize(0.0, contentSize.height)];
+    [textView setMaxSize:NSMakeSize(FLT_MAX, FLT_MAX)];
+    [textView setVerticallyResizable:YES];
+    [textView setHorizontallyResizable:NO];
+    [textView setAutoresizingMask:NSViewWidthSizable];
+    [[textView textContainer] setContainerSize:NSMakeSize(contentSize.width, FLT_MAX)];
+    [[textView textContainer] setWidthTracksTextView:YES];
+    [textView setFont:[NSFont userFixedPitchFontOfSize:11.0]];
+    [textView setAutomaticQuoteSubstitutionEnabled:NO];
+    [textView setAutomaticDashSubstitutionEnabled:NO];
+    [textView setAutomaticTextReplacementEnabled:NO];
+    
+    [scrollView setDocumentView:textView];
+    [parentView addSubview:scrollView];
+    return textView;
+}
+
+- (NSDictionary *)loadSharedConfigFromAppGroup {
+    NSMutableDictionary *dict = [NSMutableDictionary dictionary];
+    NSString *appGroupID = getAppGroupID();
+    
+    NSUserDefaults *defaults = [[NSUserDefaults alloc] initWithSuiteName:appGroupID];
+    if (defaults) {
+        if ([defaults stringForKey:@"serverAddr"]) dict[@"serverAddr"] = [defaults stringForKey:@"serverAddr"];
+        if ([defaults stringForKey:@"ServerAddress"]) dict[@"ServerAddress"] = [defaults stringForKey:@"ServerAddress"];
+        if ([defaults stringForKey:@"caContent"]) dict[@"caContent"] = [defaults stringForKey:@"caContent"];
+        if ([defaults stringForKey:@"certContent"]) dict[@"certContent"] = [defaults stringForKey:@"certContent"];
+        if ([defaults stringForKey:@"keyContent"]) dict[@"keyContent"] = [defaults stringForKey:@"keyContent"];
+    }
+    
+    return dict;
+}
+
+- (BOOL)saveSharedConfigToAppGroup:(NSDictionary *)settings error:(NSError **)error {
+    NSUserDefaults *defaults = [[NSUserDefaults alloc] initWithSuiteName:getAppGroupID()];
+    if (defaults) {
+        [settings enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+            [defaults setObject:obj forKey:key];
+        }];
+        [defaults synchronize];
+        return YES;
+    }
+    if (error) {
+        *error = [NSError errorWithDomain:@"AppMainDomain" code:1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to open App Group NSUserDefaults"}];
+    }
+    return NO;
+}
+
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
-    // Build a minimal main menu so ⌘Q works
-    NSMenu *mainMenu = [[NSMenu alloc] init];
-    NSMenuItem *appMenuItem = [[NSMenuItem alloc] init];
-    [mainMenu addItem:appMenuItem];
-    NSMenu *appMenu = [[NSMenu alloc] init];
-    NSMenuItem *quitItem = [[NSMenuItem alloc] initWithTitle:@"Quit TPM Cert Proxy"
-                                                      action:@selector(terminate:)
-                                               keyEquivalent:@"q"];
-    [appMenu addItem:quitItem];
-    [appMenuItem setSubmenu:appMenu];
-    [NSApp setMainMenu:mainMenu];
+    setupMainMenu();
 
-    writeRandomSettingsToAppGroup();
-
-    NSRect frame = NSMakeRect(100, 100, 880, 480);
+    NSRect frame = NSMakeRect(100, 100, 880, 780);
     NSUInteger style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable;
     self.window = [[NSWindow alloc] initWithContentRect:frame styleMask:style backing:NSBackingStoreBuffered defer:NO];
-    [self.window setTitle:@"TPM Cert Proxy - MacToken Provider"];
-    
+    [self.window setTitle:@"TPM Cert Proxy - MacToken Provider Configuration"];
+
     NSView *contentView = [self.window contentView];
 
-    self.headerLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(20, 435, 840, 30)];
+    // Header Title
+    self.headerLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(20, 740, 840, 28)];
     [self.headerLabel setEditable:NO];
     [self.headerLabel setBordered:NO];
     [self.headerLabel setDrawsBackground:NO];
     [self.headerLabel setAlignment:NSTextAlignmentLeft];
     [self.headerLabel setFont:[NSFont systemFontOfSize:16 weight:NSFontWeightBold]];
+    [self.headerLabel setStringValue:@"MacToken CryptoTokenKit Provider Configuration"];
     [contentView addSubview:self.headerLabel];
 
-    self.selectAllCheckbox = [[NSButton alloc] initWithFrame:NSMakeRect(20, 408, 100, 22)];
+    // Row 1: Server Address
+    NSTextField *serverLbl = [[NSTextField alloc] initWithFrame:NSMakeRect(20, 700, 130, 22)];
+    [serverLbl setStringValue:@"Server Address:"];
+    [serverLbl setEditable:NO];
+    [serverLbl setBordered:NO];
+    [serverLbl setDrawsBackground:NO];
+    [serverLbl setAlignment:NSTextAlignmentRight];
+    [contentView addSubview:serverLbl];
+
+    self.serverAddrField = [[NSTextField alloc] initWithFrame:NSMakeRect(160, 700, 690, 24)];
+    [self.serverAddrField setPlaceholderString:@"192.168.0.133:50051"];
+    [contentView addSubview:self.serverAddrField];
+
+    // Row 2: CA Certificate
+    NSTextField *caLbl = [[NSTextField alloc] initWithFrame:NSMakeRect(20, 640, 130, 22)];
+    [caLbl setStringValue:@"CA Certificate:"];
+    [caLbl setEditable:NO];
+    [caLbl setBordered:NO];
+    [caLbl setDrawsBackground:NO];
+    [caLbl setAlignment:NSTextAlignmentRight];
+    [contentView addSubview:caLbl];
+
+    self.caTextView = [self createScrollableTextViewInFrame:NSMakeRect(160, 595, 580, 75) parentView:contentView];
+
+    NSButton *caBrowseBtn = [[NSButton alloc] initWithFrame:NSMakeRect(750, 640, 100, 28)];
+    [caBrowseBtn setTitle:@"Browse..."];
+    [caBrowseBtn setTarget:self];
+    [caBrowseBtn setAction:@selector(browseCA:)];
+    [contentView addSubview:caBrowseBtn];
+
+    // Row 3: Client Certificate
+    NSTextField *certLbl = [[NSTextField alloc] initWithFrame:NSMakeRect(20, 535, 130, 22)];
+    [certLbl setStringValue:@"Client Certificate:"];
+    [certLbl setEditable:NO];
+    [certLbl setBordered:NO];
+    [certLbl setDrawsBackground:NO];
+    [certLbl setAlignment:NSTextAlignmentRight];
+    [contentView addSubview:certLbl];
+
+    self.certTextView = [self createScrollableTextViewInFrame:NSMakeRect(160, 490, 580, 75) parentView:contentView];
+
+    NSButton *certBrowseBtn = [[NSButton alloc] initWithFrame:NSMakeRect(750, 535, 100, 28)];
+    [certBrowseBtn setTitle:@"Browse..."];
+    [certBrowseBtn setTarget:self];
+    [certBrowseBtn setAction:@selector(browseCert:)];
+    [contentView addSubview:certBrowseBtn];
+
+    // Row 4: Client Key
+    NSTextField *keyLbl = [[NSTextField alloc] initWithFrame:NSMakeRect(20, 430, 130, 22)];
+    [keyLbl setStringValue:@"Client Key:"];
+    [keyLbl setEditable:NO];
+    [keyLbl setBordered:NO];
+    [keyLbl setDrawsBackground:NO];
+    [keyLbl setAlignment:NSTextAlignmentRight];
+    [contentView addSubview:keyLbl];
+
+    self.keyTextView = [self createScrollableTextViewInFrame:NSMakeRect(160, 385, 580, 75) parentView:contentView];
+
+    NSButton *keyBrowseBtn = [[NSButton alloc] initWithFrame:NSMakeRect(750, 430, 100, 28)];
+    [keyBrowseBtn setTitle:@"Browse..."];
+    [keyBrowseBtn setTarget:self];
+    [keyBrowseBtn setAction:@selector(browseKey:)];
+    [contentView addSubview:keyBrowseBtn];
+
+    // Buttons & Status Row
+    NSButton *testBtn = [[NSButton alloc] initWithFrame:NSMakeRect(160, 345, 140, 32)];
+    [testBtn setTitle:@"Test Connection"];
+    [testBtn setBezelStyle:NSBezelStyleRounded];
+    [testBtn setTarget:self];
+    [testBtn setAction:@selector(testConfig:)];
+    [contentView addSubview:testBtn];
+
+    NSButton *saveBtn = [[NSButton alloc] initWithFrame:NSMakeRect(310, 345, 140, 32)];
+    [saveBtn setTitle:@"Save & Apply"];
+    [saveBtn setBezelStyle:NSBezelStyleRounded];
+    [saveBtn setTarget:self];
+    [saveBtn setAction:@selector(saveConfig:)];
+    [contentView addSubview:saveBtn];
+
+    self.statusLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(460, 340, 390, 40)];
+    [self.statusLabel setEditable:NO];
+    [self.statusLabel setBordered:NO];
+    [self.statusLabel setDrawsBackground:NO];
+    [self.statusLabel setAlignment:NSTextAlignmentLeft];
+    [self.statusLabel setFont:[NSFont systemFontOfSize:11 weight:NSFontWeightMedium]];
+    [[self.statusLabel cell] setWraps:YES];
+    [contentView addSubview:self.statusLabel];
+
+    // Separator / Identities section
+    NSTextField *identSectionLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(20, 310, 840, 22)];
+    [identSectionLabel setStringValue:@"Remote Identities & Keychain Items"];
+    [identSectionLabel setEditable:NO];
+    [identSectionLabel setBordered:NO];
+    [identSectionLabel setDrawsBackground:NO];
+    [identSectionLabel setFont:[NSFont systemFontOfSize:14 weight:NSFontWeightBold]];
+    [contentView addSubview:identSectionLabel];
+
+    self.selectAllCheckbox = [[NSButton alloc] initWithFrame:NSMakeRect(20, 282, 100, 22)];
     [self.selectAllCheckbox setButtonType:NSButtonTypeSwitch];
     [self.selectAllCheckbox setTitle:@"Select All"];
     [self.selectAllCheckbox setState:NSControlStateValueOn];
@@ -170,16 +348,18 @@ static void writeRandomSettingsToAppGroup(void) {
     [self.selectAllCheckbox setAction:@selector(selectAllCheckboxToggled:)];
     [contentView addSubview:self.selectAllCheckbox];
 
-    self.sublabel = [[NSTextField alloc] initWithFrame:NSMakeRect(130, 408, 730, 22)];
+    self.sublabel = [[NSTextField alloc] initWithFrame:NSMakeRect(130, 282, 730, 22)];
     [self.sublabel setEditable:NO];
     [self.sublabel setBordered:NO];
     [self.sublabel setDrawsBackground:NO];
     [self.sublabel setAlignment:NSTextAlignmentLeft];
     [self.sublabel setFont:[NSFont systemFontOfSize:12 weight:NSFontWeightRegular]];
+    [self.sublabel setStringValue:@"Check identities to add to CryptoTokenKit keychain, then click 'Apply Selected'."];
+    [self.sublabel setTextColor:[NSColor secondaryLabelColor]];
     [contentView addSubview:self.sublabel];
 
-    // ScrollView and TableView
-    NSScrollView *scrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(20, 85, 840, 315)];
+    // ScrollView and TableView for Identities
+    NSScrollView *scrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(20, 80, 840, 195)];
     [scrollView setHasVerticalScroller:YES];
     [scrollView setHasHorizontalScroller:YES];
     [scrollView setAutohidesScrollers:YES];
@@ -221,95 +401,212 @@ static void writeRandomSettingsToAppGroup(void) {
     scrollView.documentView = self.tableView;
     [contentView addSubview:scrollView];
 
-    // Control Buttons
-    NSButton *btnRefresh = [[NSButton alloc] initWithFrame:NSMakeRect(20, 45, 110, 32)];
+    // Lower Control Buttons
+    NSButton *btnRefresh = [[NSButton alloc] initWithFrame:NSMakeRect(20, 42, 110, 32)];
     [btnRefresh setTitle:@"Refresh"];
     [btnRefresh setBezelStyle:NSBezelStyleRounded];
     [btnRefresh setTarget:self];
     [btnRefresh setAction:@selector(refreshIdentities:)];
     [contentView addSubview:btnRefresh];
 
-    NSButton *btnTestConn = [[NSButton alloc] initWithFrame:NSMakeRect(140, 45, 150, 32)];
-    [btnTestConn setTitle:@"Test Connection"];
-    [btnTestConn setBezelStyle:NSBezelStyleRounded];
-    [btnTestConn setTarget:self];
-    [btnTestConn setAction:@selector(testConnection:)];
-    [contentView addSubview:btnTestConn];
-
-    NSButton *btnApply = [[NSButton alloc] initWithFrame:NSMakeRect(490, 45, 170, 32)];
+    NSButton *btnApply = [[NSButton alloc] initWithFrame:NSMakeRect(140, 42, 170, 32)];
     [btnApply setTitle:@"Apply Selected"];
     [btnApply setBezelStyle:NSBezelStyleRounded];
-    [btnApply setKeyEquivalent:@"\r"];
     [btnApply setTarget:self];
     [btnApply setAction:@selector(applySelectedIdentities:)];
     [contentView addSubview:btnApply];
 
-    self.footerLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(20, 15, 840, 22)];
+    self.footerLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(20, 12, 840, 22)];
     [self.footerLabel setEditable:NO];
     [self.footerLabel setBordered:NO];
     [self.footerLabel setDrawsBackground:NO];
     [self.footerLabel setFont:[NSFont systemFontOfSize:12 weight:NSFontWeightMedium]];
     [contentView addSubview:self.footerLabel];
 
+    // Load initial settings from App Group
+    NSDictionary *savedConfig = [self loadSharedConfigFromAppGroup];
+    NSString *savedAddr = savedConfig[@"serverAddr"] ?: savedConfig[@"ServerAddress"];
+    NSString *savedCA   = savedConfig[@"caContent"]   ?: savedConfig[@"caPath"];
+    NSString *savedCert = savedConfig[@"certContent"] ?: savedConfig[@"certPath"];
+    NSString *savedKey  = savedConfig[@"keyContent"]  ?: savedConfig[@"keyPath"];
+
     NSBundle *bundle = [NSBundle mainBundle];
-    NSString *ca = [bundle pathForResource:@"ca" ofType:@"crt" inDirectory:@"certs"];
-    NSString *cert = [bundle pathForResource:@"client" ofType:@"crt" inDirectory:@"certs"];
-    NSString *key = [bundle pathForResource:@"client" ofType:@"key" inDirectory:@"certs"];
-    
-    if (!ca || !cert || !key) {
-        NSMutableArray<NSString *> *missing = [NSMutableArray array];
-        if (!ca) [missing addObject:@"ca.crt"];
-        if (!cert) [missing addObject:@"client.crt"];
-        if (!key) [missing addObject:@"client.key"];
-        
-        NSString *missingStr = [missing componentsJoinedByString:@", "];
-        NSLog(@"AppMain error: missing certificate files: %@", missingStr);
-        
-        [self.headerLabel setStringValue:@"Initialization Failed: Certificate(s) Missing"];
-        [self.headerLabel setTextColor:[NSColor systemRedColor]];
-        [self.sublabel setStringValue:[NSString stringWithFormat:@"Missing required bundle certificates in certs/: %@", missingStr]];
-        [self.sublabel setTextColor:[NSColor systemRedColor]];
-    } else {
-        NSLog(@"AppMain initializing ctk bridge with CA: %@, cert: %@, key: %@", ca, cert, key);
-        int initRes = ctk_bridge_init_opts("192.168.0.133:50051", (char *)ca.UTF8String, (char *)cert.UTF8String, (char *)key.UTF8String);
-        NSLog(@"AppMain ctk_bridge_init_opts res: %d", initRes);
+    NSString *bundleCA   = [bundle pathForResource:@"ca" ofType:@"crt" inDirectory:@"certs"];
+    NSString *bundleCert = [bundle pathForResource:@"client" ofType:@"crt" inDirectory:@"certs"];
+    NSString *bundleKey  = [bundle pathForResource:@"client" ofType:@"key" inDirectory:@"certs"];
 
+    if (!savedAddr || savedAddr.length == 0) savedAddr = @"192.168.0.133:50051";
+    if (!savedCA   || savedCA.length == 0)   savedCA   = bundleCA ? resolveContentOrPath(bundleCA) : @"";
+    if (!savedCert || savedCert.length == 0) savedCert = bundleCert ? resolveContentOrPath(bundleCert) : @"";
+    if (!savedKey  || savedKey.length == 0)  savedKey  = bundleKey ? resolveContentOrPath(bundleKey) : @"";
+
+    self.serverAddrField.stringValue = savedAddr;
+    if (savedCA.length > 0)   self.caTextView.string   = savedCA;
+    if (savedCert.length > 0) self.certTextView.string = savedCert;
+    if (savedKey.length > 0)  self.keyTextView.string  = savedKey;
+
+    NSString *effectiveAddr = self.serverAddrField.stringValue;
+    NSString *effectiveCA   = resolveContentOrPath(self.caTextView.string);
+    NSString *effectiveCert = resolveContentOrPath(self.certTextView.string);
+    NSString *effectiveKey  = resolveContentOrPath(self.keyTextView.string);
+
+    if (effectiveAddr.length > 0 && effectiveCA.length > 0 && effectiveCert.length > 0 && effectiveKey.length > 0) {
+        int initRes = ctk_bridge_init_opts((char *)effectiveAddr.UTF8String, (char *)effectiveCA.UTF8String, (char *)effectiveCert.UTF8String, (char *)effectiveKey.UTF8String);
         if (initRes != 0) {
-            [self.headerLabel setStringValue:@"Initialization Failed: Bridge Error"];
-            [self.headerLabel setTextColor:[NSColor systemRedColor]];
-            [self.sublabel setStringValue:[NSString stringWithFormat:@"ctk_bridge_init_opts returned error code %d", initRes]];
-            [self.sublabel setTextColor:[NSColor systemRedColor]];
+            [self.statusLabel setStringValue:[NSString stringWithFormat:@"Bridge init warning (code %d)", initRes]];
+            [self.statusLabel setTextColor:[NSColor systemRedColor]];
         } else {
-            [self.headerLabel setStringValue:@"MacToken CryptoTokenKit Provider Registered & Active!"];
-            [self.headerLabel setTextColor:[NSColor labelColor]];
-            [self.sublabel setStringValue:@"Check identities to add to CryptoTokenKit keychain, then click 'Apply Selected'."];
-            [self.sublabel setTextColor:[NSColor secondaryLabelColor]];
-
-            NSString *classID = @"com.fredprx.mactoken.app.extension";
-            NSDictionary<NSString *, TKTokenDriverConfiguration *> *configs = [TKTokenDriverConfiguration driverConfigurations];
-            NSLog(@"TKTokenDriverConfiguration driverConfigurations: %@", configs);
-            TKTokenDriverConfiguration *driverConfig = configs[classID];
-            if (driverConfig) {
-                NSLog(@"Found driverConfig for classID %@", classID);
-                self.tokenConfig = driverConfig.tokenConfigurations[@"CertServerToken"];
-                if (!self.tokenConfig) {
-                    self.tokenConfig = [driverConfig addTokenConfigurationForTokenInstanceID:@"CertServerToken"];
-                    NSLog(@"Added tokenConfig for CertServerToken: %@", self.tokenConfig);
-                }
-                [self loadIdentitiesFromBridge];
-                [self applySelectedIdentities:nil];
-            } else {
-                NSLog(@"driverConfig is NIL for classID %@", classID);
-                printf("driverConfig is NIL for classID %s\n", classID.UTF8String);
-                [self.footerLabel setStringValue:@"Driver configuration not found for extension class ID."];
-                [self.footerLabel setTextColor:[NSColor systemRedColor]];
-            }
+            [self.statusLabel setStringValue:@"Bridge initialized successfully."];
+            [self.statusLabel setTextColor:[NSColor systemGreenColor]];
         }
+    } else {
+        [self.statusLabel setStringValue:@"Please configure settings and click 'Save & Apply'."];
+        [self.statusLabel setTextColor:[NSColor systemOrangeColor]];
+    }
+
+    NSString *classID = @"com.fredprx.mactoken.app.extension";
+    NSDictionary<NSString *, TKTokenDriverConfiguration *> *configs = [TKTokenDriverConfiguration driverConfigurations];
+    TKTokenDriverConfiguration *driverConfig = configs[classID];
+    if (driverConfig) {
+        self.tokenConfig = driverConfig.tokenConfigurations[@"CertServerToken"];
+        if (!self.tokenConfig) {
+            self.tokenConfig = [driverConfig addTokenConfigurationForTokenInstanceID:@"CertServerToken"];
+        }
+        [self loadIdentitiesFromBridge];
+        [self applySelectedIdentities:nil];
+    } else {
+        [self.footerLabel setStringValue:@"Driver configuration not found for extension class ID."];
+        [self.footerLabel setTextColor:[NSColor systemRedColor]];
     }
 
     [self.window center];
     [self.window makeKeyAndOrderFront:nil];
     [NSApp activateIgnoringOtherApps:YES];
+}
+
+- (void)browseCA:(id)sender {
+    [self browseForFileWithTitle:@"Select CA Certificate File" completion:^(NSString *content) {
+        self.caTextView.string = content;
+    }];
+}
+
+- (void)browseCert:(id)sender {
+    [self browseForFileWithTitle:@"Select Client Certificate File" completion:^(NSString *content) {
+        self.certTextView.string = content;
+    }];
+}
+
+- (void)browseKey:(id)sender {
+    [self browseForFileWithTitle:@"Select Client Key File" completion:^(NSString *content) {
+        self.keyTextView.string = content;
+    }];
+}
+
+- (void)browseForFileWithTitle:(NSString *)title completion:(void(^)(NSString *content))completion {
+    NSOpenPanel *panel = [NSOpenPanel openPanel];
+    panel.title = title;
+    panel.canChooseFiles = YES;
+    panel.canChooseDirectories = NO;
+    panel.allowsMultipleSelection = NO;
+    panel.treatsFilePackagesAsDirectories = NO;
+
+    NSModalResponse response = [panel runModal];
+    if (response == NSModalResponseOK) {
+        NSURL *url = panel.URLs.firstObject;
+        if (url && url.path) {
+            NSString *content = resolveContentOrPath(url.path);
+            if (content.length > 0) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    completion(content);
+                });
+            }
+        }
+    }
+}
+
+extern char *ctk_bridge_last_error(void);
+
+- (void)testConfig:(id)sender {
+    NSString *addr = [self.serverAddrField.stringValue stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    NSString *ca   = resolveContentOrPath(self.caTextView.string);
+    NSString *cert = resolveContentOrPath(self.certTextView.string);
+    NSString *key  = resolveContentOrPath(self.keyTextView.string);
+
+    if (addr.length == 0 || ca.length == 0 || cert.length == 0 || key.length == 0) {
+        self.statusLabel.textColor = [NSColor systemRedColor];
+        self.statusLabel.stringValue = @"Test Failed: All fields (Server Address, CA, Client Cert, Client Key) must be specified.";
+        return;
+    }
+
+    [self.statusLabel setTextColor:[NSColor secondaryLabelColor]];
+    [self.statusLabel setStringValue:@"Testing connection..."];
+    [self.statusLabel displayIfNeeded];
+
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        int res = ctk_bridge_init_opts((char *)addr.UTF8String, (char *)ca.UTF8String, (char *)cert.UTF8String, (char *)key.UTF8String);
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (res != 0) {
+                char *errStr = ctk_bridge_last_error();
+                NSString *errMsg = (errStr && strlen(errStr) > 0) ? [NSString stringWithUTF8String:errStr] : [NSString stringWithFormat:@"error code %d", res];
+                if (errStr) free(errStr);
+                self.statusLabel.textColor = [NSColor systemRedColor];
+                self.statusLabel.stringValue = [NSString stringWithFormat:@"Test Failed: %@", errMsg];
+                return;
+            }
+
+            int count = ctk_bridge_installed_count();
+            self.statusLabel.textColor = [NSColor systemGreenColor];
+            self.statusLabel.stringValue = [NSString stringWithFormat:@"Test Connection Successful! Discovered %d certificate(s) from remote server.", count];
+            [self refreshIdentities:nil];
+        });
+    });
+}
+
+- (void)saveConfig:(id)sender {
+    NSString *addr = [self.serverAddrField.stringValue stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    NSString *ca   = resolveContentOrPath(self.caTextView.string);
+    NSString *cert = resolveContentOrPath(self.certTextView.string);
+    NSString *key  = resolveContentOrPath(self.keyTextView.string);
+
+    if (addr.length == 0 || ca.length == 0 || cert.length == 0 || key.length == 0) {
+        self.statusLabel.textColor = [NSColor systemRedColor];
+        self.statusLabel.stringValue = @"Save Failed: All fields must be specified before saving.";
+        return;
+    }
+
+    NSDictionary *configDict = @{
+        @"serverAddr": addr,
+        @"ServerAddress": addr,
+        @"caContent": ca,
+        @"certContent": cert,
+        @"keyContent": key,
+        @"caPath": ca,
+        @"certPath": cert,
+        @"keyPath": key,
+        @"LastUpdated": [[NSDate date] description]
+    };
+
+    NSError *saveError = nil;
+    if (![self saveSharedConfigToAppGroup:configDict error:&saveError]) {
+        self.statusLabel.textColor = [NSColor systemRedColor];
+        self.statusLabel.stringValue = [NSString stringWithFormat:@"Save Failed: %@", saveError ? saveError.localizedDescription : @"Unknown error"];
+        return;
+    }
+
+    int res = ctk_bridge_init_opts((char *)addr.UTF8String, (char *)ca.UTF8String, (char *)cert.UTF8String, (char *)key.UTF8String);
+    if (res == 0) {
+        int count = ctk_bridge_installed_count();
+        NSLog(@"AppMain: config saved to App Group, %d remote certificate(s) discovered.", count);
+        self.statusLabel.textColor = [NSColor systemGreenColor];
+        self.statusLabel.stringValue = [NSString stringWithFormat:@"Configuration saved to App Group and applied! Discovered %d remote certificate(s).", count];
+        [self refreshIdentities:nil];
+    } else {
+        char *errStr = ctk_bridge_last_error();
+        NSString *errMsg = (errStr && strlen(errStr) > 0) ? [NSString stringWithUTF8String:errStr] : [NSString stringWithFormat:@"error code %d", res];
+        if (errStr) free(errStr);
+        self.statusLabel.textColor = [NSColor systemRedColor];
+        self.statusLabel.stringValue = [NSString stringWithFormat:@"Saved preferences, but bridge initialization failed: %@", errMsg];
+    }
 }
 
 - (void)loadIdentitiesFromBridge {
@@ -397,8 +694,7 @@ static void writeRandomSettingsToAppGroup(void) {
 #pragma mark - Selection Persistence
 
 - (NSArray<NSDictionary *> *)loadSavedSelectedIdentities {
-    NSString *appGroupID = @"8Z93635RW6.com.fredprx.mactoken.shareddata";
-    NSUserDefaults *defaults = [[NSUserDefaults alloc] initWithSuiteName:appGroupID];
+    NSUserDefaults *defaults = [[NSUserDefaults alloc] initWithSuiteName:getAppGroupID()];
     NSArray *saved = [defaults objectForKey:@"SelectedIdentities"];
     return ([saved isKindOfClass:[NSArray class]]) ? saved : nil;
 }
@@ -413,8 +709,7 @@ static void writeRandomSettingsToAppGroup(void) {
             }];
         }
     }
-    NSString *appGroupID = @"8Z93635RW6.com.fredprx.mactoken.shareddata";
-    NSUserDefaults *defaults = [[NSUserDefaults alloc] initWithSuiteName:appGroupID];
+    NSUserDefaults *defaults = [[NSUserDefaults alloc] initWithSuiteName:getAppGroupID()];
     [defaults setObject:selected forKey:@"SelectedIdentities"];
     [defaults synchronize];
     NSLog(@"AppMain: Saved %ld selected identities to App Group defaults", (long)selected.count);
@@ -441,29 +736,6 @@ static void writeRandomSettingsToAppGroup(void) {
 
 - (void)refreshIdentities:(id)sender {
     [self loadIdentitiesFromBridge];
-}
-
-- (void)testConnection:(id)sender {
-    [self.footerLabel setStringValue:@"Testing connection…"];
-    [self.footerLabel setTextColor:[NSColor secondaryLabelColor]];
-    [self.footerLabel displayIfNeeded];
-
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        NSDate *start = [NSDate date];
-        int result = ctk_bridge_ping();
-        NSTimeInterval elapsed = -[start timeIntervalSinceNow];
-
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if (result == 0) {
-                NSString *msg = [NSString stringWithFormat:@"✓ Connection OK  (%.0f ms)", elapsed * 1000];
-                [self.footerLabel setStringValue:msg];
-                [self.footerLabel setTextColor:[NSColor systemGreenColor]];
-            } else {
-                [self.footerLabel setStringValue:@"✗ Connection failed — check server address and certificates."];
-                [self.footerLabel setTextColor:[NSColor systemRedColor]];
-            }
-        });
-    });
 }
 
 - (void)applySelectedIdentities:(id)sender {
