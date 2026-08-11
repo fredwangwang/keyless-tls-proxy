@@ -1,4 +1,10 @@
-//go:build windows
+//go:build !windows
+
+// Linux bridge: exposes every certificate the cert-server reports as having a
+// private key (no local installation manifest). Configuration comes from the
+// KSP11_ADDR / KSP11_CA / KSP11_CERT / KSP11_KEY environment variables, or
+// from a JSON config file at $XDG_CONFIG_HOME/fredprx-ksp/config.json (or the
+// path passed to tpmcert_init).
 
 package main
 
@@ -21,11 +27,33 @@ import "C"
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"time"
 	"unsafe"
 
 	"github.com/fredwangwang/keyless-tls-proxy/internal/kspclient"
 )
+
+func defaultConfigPath() string {
+	base := os.Getenv("XDG_CONFIG_HOME")
+	if base == "" {
+		if home, err := os.UserHomeDir(); err == nil {
+			base = filepath.Join(home, ".config")
+		}
+	}
+	return filepath.Join(base, "fredprx-ksp", "config.json")
+}
+
+func loadConfig(configPath string) (*kspclient.Config, error) {
+	if configPath != "" {
+		return kspclient.LoadConfig(configPath)
+	}
+	if cfg := kspclient.LoadConfigFromEnv(); cfg != nil {
+		return cfg, nil
+	}
+	return kspclient.LoadConfig(defaultConfigPath())
+}
 
 //export tpmcert_init
 func tpmcert_init(configPath *C.char) C.int {
@@ -33,7 +61,7 @@ func tpmcert_init(configPath *C.char) C.int {
 	if configPath != nil {
 		path = C.GoString(configPath)
 	}
-	cfg, err := kspclient.LoadConfig(path)
+	cfg, err := loadConfig(path)
 	if err != nil {
 		return codeErr
 	}
@@ -44,7 +72,12 @@ func tpmcert_init(configPath *C.char) C.int {
 	if c == nil {
 		return codeErr
 	}
-	if err := c.ReloadManifest(); err != nil {
+	// Fail fast: make sure the cert-server is reachable before the C layer
+	// advertises any keys.
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := c.Ping(ctx); err != nil {
+		kspclient.ShutdownGlobal()
 		return codeErr
 	}
 	return codeOK
@@ -57,13 +90,7 @@ func tpmcert_shutdown() {
 
 //export tpmcert_reload_manifest
 func tpmcert_reload_manifest() C.int {
-	c := kspclient.Global()
-	if c == nil {
-		return codeErr
-	}
-	if err := c.ReloadManifest(); err != nil {
-		return codeErr
-	}
+	// No local manifest on Linux; nothing to reload.
 	return codeOK
 }
 
@@ -75,7 +102,7 @@ func tpmcert_installed_count() C.int {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	keys, err := c.InstalledKeys(ctx)
+	keys, err := c.AllKeys(ctx)
 	if err != nil {
 		return 0
 	}
@@ -93,7 +120,7 @@ func tpmcert_get_installed(index C.int, out *C.tpmcert_key_info) C.int {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	keys, err := c.InstalledKeys(ctx)
+	keys, err := c.AllKeys(ctx)
 	if err != nil {
 		return codeErr
 	}
@@ -115,12 +142,18 @@ func tpmcert_find_installed(thumbprint *C.char, out *C.tpmcert_key_info) C.int {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	k, err := c.FindInstalled(ctx, C.GoString(thumbprint))
+	keys, err := c.AllKeys(ctx)
 	if err != nil {
-		return codeNotFound
+		return codeErr
 	}
-	fillKeyInfo(out, *k)
-	return codeOK
+	target := normalizeThumbprint(C.GoString(thumbprint))
+	for i := range keys {
+		if normalizeThumbprint(keys[i].Thumbprint) == target {
+			fillKeyInfo(out, keys[i])
+			return codeOK
+		}
+	}
+	return codeNotFound
 }
 
 //export tpmcert_free_key_info
@@ -158,7 +191,7 @@ func tpmcert_sign_hash(
 	d := C.GoBytes(unsafe.Pointer(digest), C.int(digestLen))
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	sig, err := c.SignHash(
+	sig, err := c.SignHashDirect(
 		ctx,
 		C.GoString(thumbprint),
 		d,
@@ -180,4 +213,19 @@ func tpmcert_sign_hash(
 	copy(dest, sig)
 	*sigLen = C.size_t(len(sig))
 	return codeOK
+}
+
+func normalizeThumbprint(s string) string {
+	out := make([]byte, 0, len(s))
+	for i := 0; i < len(s); i++ {
+		ch := s[i]
+		if ch == ':' || ch == ' ' || ch == '-' {
+			continue
+		}
+		if ch >= 'a' && ch <= 'f' {
+			ch -= 32
+		}
+		out = append(out, ch)
+	}
+	return string(out)
 }

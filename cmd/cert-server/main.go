@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	certv1 "github.com/fredwangwang/keyless-tls-proxy/gen/cert/v1"
+	"github.com/fredwangwang/keyless-tls-proxy/internal/certstore"
 	"github.com/fredwangwang/keyless-tls-proxy/internal/server"
 	"github.com/fredwangwang/keyless-tls-proxy/internal/tlsutil"
 
@@ -62,6 +63,7 @@ func main() {
 	cert := flag.String("cert", "certs/server.crt", "server TLS certificate")
 	key := flag.String("key", "certs/server.key", "server TLS private key")
 	verbose := flag.Bool("verbose", false, "log each gRPC call with request/response details")
+	certDir := flag.String("cert-dir", "", "directory containing cert/key pairs (cert.crt + cert.key) to expose as the certificate store (used on Linux)")
 	discovery := flag.Bool("discovery", true, "enable UDP broadcast discovery")
 	discoveryAddr := flag.String("discovery-addr", ":6666", "UDP discovery listen address")
 	flag.Parse()
@@ -75,6 +77,13 @@ func main() {
 	}
 	defer logFile.Close()
 	log.SetOutput(io.MultiWriter(os.Stderr, logFile))
+
+	if *certDir != "" {
+		if err := certstore.SetCertDir(*certDir); err != nil {
+			log.Fatalf("cert-dir: %v", err)
+		}
+		log.Printf("cert store: file-based store from %s", *certDir)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

@@ -1,0 +1,12 @@
+# Build artifacts
+*.so
+*.a
+libtpmcertclient.h
+
+# Generated test artifacts (created by make test / test-sign.sh)
+ksp11.cnf
+msg.txt
+digest.bin
+sig*.bin
+server-pub.pem
+ec-pub.pem

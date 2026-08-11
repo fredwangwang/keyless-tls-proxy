@@ -10,6 +10,9 @@ import (
 func TestListCertificates(t *testing.T) {
 	certs, err := certstore.ListCertificates()
 	if err != nil {
+		if err == certstore.ErrUnsupportedPlatform {
+			t.Skip("certificate store not supported on this platform")
+		}
 		t.Fatalf("ListCertificates returned error: %v", err)
 	}
 	t.Logf("Found %d certificates with private keys", len(certs))
@@ -22,6 +25,9 @@ func TestListCertificates(t *testing.T) {
 func TestSignHash(t *testing.T) {
 	certs, err := certstore.ListCertificates()
 	if err != nil {
+		if err == certstore.ErrUnsupportedPlatform {
+			t.Skip("certificate store not supported on this platform")
+		}
 		t.Fatalf("ListCertificates: %v", err)
 	}
 	if len(certs) == 0 {

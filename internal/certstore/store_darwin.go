@@ -413,14 +413,6 @@ func SignHash(thumbprint string, digest []byte, hash HashAlgorithm, padding RSAP
 	}, nil
 }
 
-func cleanThumbprint(tp string) string {
-	tp = strings.ToUpper(strings.TrimSpace(tp))
-	tp = strings.ReplaceAll(tp, ":", "")
-	tp = strings.ReplaceAll(tp, " ", "")
-	tp = strings.ReplaceAll(tp, "-", "")
-	return tp
-}
-
 func keyMetadata(cert *x509.Certificate) (string, int) {
 	switch pub := cert.PublicKey.(type) {
 	case *rsa.PublicKey:
