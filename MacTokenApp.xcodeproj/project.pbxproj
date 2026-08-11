@@ -141,7 +141,6 @@
 				33693713E7A1500A2844AB98 /* Build Go C-Archive (libctkbridge.a) */,
 				DB7440A9BAF49717485232F7 /* Sources */,
 				824B5C8DA0E2A296F29E5D35 /* Frameworks */,
-				785FFF7D97D566D4BB10D831 /* Copy Certs Resources */,
 			);
 			buildRules = (
 			);
@@ -161,7 +160,6 @@
 				D34108217AABC06DECCC7845 /* Sources */,
 				BB775FF95C1A0A98422A6FE6 /* Frameworks */,
 				7CA2400BC867A341602BE5F2 /* Embed Foundation Extensions */,
-				E38C0CED9B3668A68A4BBFE6 /* Copy Certs Resources */,
 			);
 			buildRules = (
 			);
@@ -244,42 +242,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "if [ -f \"$PROJECT_DIR/go.mod\" ]; then\n  cd \"$PROJECT_DIR\"\nfi\nexport PATH=\"/usr/local/bin:/opt/homebrew/bin:$PATH\"\nmkdir -p build\nTARGET_ARCHS=\"${ARCHS:-$(uname -m)}\"\nrm -f build/libctkbridge_*.a build/libctkbridge_*.h\nBUILD_LIBS=()\nLAST_HEADER=\"\"\nfor ARCH in $TARGET_ARCHS; do\n    GO_ARCH=\"\"\n    case \"$ARCH\" in\n        arm64|arm64e) GO_ARCH=\"arm64\" ;;\n        x86_64|amd64) GO_ARCH=\"amd64\" ;;\n    esac\n    if [ -n \"$GO_ARCH\" ]; then\n        ARCH_LIB=\"build/libctkbridge_${GO_ARCH}.a\"\n        ARCH_HDR=\"build/libctkbridge_${GO_ARCH}.h\"\n        if [ ! -f \"$ARCH_LIB\" ]; then\n            GOOS=darwin GOARCH=\"$GO_ARCH\" CGO_ENABLED=1 go build -buildmode=c-archive -o \"$ARCH_LIB\" ./internal/ctkbridge\n        fi\n        BUILD_LIBS+=(\"$ARCH_LIB\")\n        LAST_HEADER=\"$ARCH_HDR\"\n    fi\ndone\nrm -f build/libctkbridge.a build/libctkbridge.h\nif [ -n \"$LAST_HEADER\" ] && [ -f \"$LAST_HEADER\" ]; then\n    cp \"$LAST_HEADER\" build/libctkbridge.h\nfi\nif [ ${#BUILD_LIBS[@]} -eq 1 ]; then\n    cp \"${BUILD_LIBS[0]}\" build/libctkbridge.a\nelif [ ${#BUILD_LIBS[@]} -gt 1 ]; then\n    lipo -create \"${BUILD_LIBS[@]}\" -output build/libctkbridge.a\nfi\n";
-		};
-		785FFF7D97D566D4BB10D831 /* Copy Certs Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Copy Certs Resources";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "DEST_DIR=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/certs\"\nmkdir -p \"$DEST_DIR\"\ncp -R \"${PROJECT_DIR}/certs/\"* \"$DEST_DIR/\"\n";
-		};
-		E38C0CED9B3668A68A4BBFE6 /* Copy Certs Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Copy Certs Resources";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "DEST_DIR=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/certs\"\nmkdir -p \"$DEST_DIR\"\ncp -R \"${PROJECT_DIR}/certs/\"* \"$DEST_DIR/\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

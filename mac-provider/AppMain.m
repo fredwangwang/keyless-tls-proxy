@@ -430,15 +430,10 @@ static NSString *resolveContentOrPath(NSString *input) {
     NSString *savedCert = savedConfig[@"certContent"] ?: savedConfig[@"certPath"];
     NSString *savedKey  = savedConfig[@"keyContent"]  ?: savedConfig[@"keyPath"];
 
-    NSBundle *bundle = [NSBundle mainBundle];
-    NSString *bundleCA   = [bundle pathForResource:@"ca" ofType:@"crt" inDirectory:@"certs"];
-    NSString *bundleCert = [bundle pathForResource:@"client" ofType:@"crt" inDirectory:@"certs"];
-    NSString *bundleKey  = [bundle pathForResource:@"client" ofType:@"key" inDirectory:@"certs"];
-
     if (!savedAddr || savedAddr.length == 0) savedAddr = @"192.168.0.133:50051";
-    if (!savedCA   || savedCA.length == 0)   savedCA   = bundleCA ? resolveContentOrPath(bundleCA) : @"";
-    if (!savedCert || savedCert.length == 0) savedCert = bundleCert ? resolveContentOrPath(bundleCert) : @"";
-    if (!savedKey  || savedKey.length == 0)  savedKey  = bundleKey ? resolveContentOrPath(bundleKey) : @"";
+    if (!savedCA)   savedCA   = @"";
+    if (!savedCert) savedCert = @"";
+    if (!savedKey)  savedKey  = @"";
 
     self.serverAddrField.stringValue = savedAddr;
     if (savedCA.length > 0)   self.caTextView.string   = savedCA;
