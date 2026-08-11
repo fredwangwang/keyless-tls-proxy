@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	certv1 "tpm-cert-proxy/gen/cert/v1"
-	"tpm-cert-proxy/internal/kspmanifest"
-	"tpm-cert-proxy/internal/tlsutil"
+	certv1 "github.com/fredwangwang/keyless-tls-proxy/gen/cert/v1"
+	"github.com/fredwangwang/keyless-tls-proxy/internal/kspmanifest"
+	"github.com/fredwangwang/keyless-tls-proxy/internal/tlsutil"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"

@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"tpm-cert-proxy/internal/kspcommon"
+	"github.com/fredwangwang/keyless-tls-proxy/internal/kspcommon"
 )
 
 type Config struct {

@@ -24,7 +24,7 @@ import (
 	"time"
 	"unsafe"
 
-	"tpm-cert-proxy/internal/kspclient"
+	"github.com/fredwangwang/keyless-tls-proxy/internal/kspclient"
 )
 
 const (

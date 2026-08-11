@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"tpm-cert-proxy/internal/kspcommon"
+	"github.com/fredwangwang/keyless-tls-proxy/internal/kspcommon"
 )
 
 var ErrNotInstalled = errors.New("thumbprint not in installed manifest")

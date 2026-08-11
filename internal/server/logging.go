@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	certv1 "tpm-cert-proxy/gen/cert/v1"
+	certv1 "github.com/fredwangwang/keyless-tls-proxy/gen/cert/v1"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"

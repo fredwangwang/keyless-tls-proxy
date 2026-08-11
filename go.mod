@@ -1,4 +1,4 @@
-module tpm-cert-proxy
+module github.com/fredwangwang/keyless-tls-proxy
 
 go 1.26.1
 
