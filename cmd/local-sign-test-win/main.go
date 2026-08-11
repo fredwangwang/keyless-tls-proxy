@@ -1,3 +1,5 @@
+//go:build windows
+
 package main
 
 import (
@@ -11,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fredwangwang/keyless-tls-proxy/internal/winstore"
+	"github.com/fredwangwang/keyless-tls-proxy/internal/certstore"
 )
 
 func cleanThumbprint(tp string) string {
@@ -22,10 +24,10 @@ func cleanThumbprint(tp string) string {
 	return tp
 }
 
-func selectCertificate(certs []winstore.WinCertInfo, targetThumbprint string, reader *bufio.Reader) (winstore.WinCertInfo, error) {
+func selectCertificate(certs []certstore.CertificateInfo, targetThumbprint string, reader *bufio.Reader) (certstore.CertificateInfo, error) {
 	if targetThumbprint != "" {
 		cleaned := cleanThumbprint(targetThumbprint)
-		var matches []winstore.WinCertInfo
+		var matches []certstore.CertificateInfo
 		for _, c := range certs {
 			if cleanThumbprint(c.Thumbprint) == cleaned {
 				matches = append(matches, c)
@@ -44,9 +46,9 @@ func selectCertificate(certs []winstore.WinCertInfo, targetThumbprint string, re
 			return matches[0], nil
 		}
 		if len(matches) > 1 {
-			return winstore.WinCertInfo{}, fmt.Errorf("ambiguous thumbprint %q matched %d certificates", targetThumbprint, len(matches))
+			return certstore.CertificateInfo{}, fmt.Errorf("ambiguous thumbprint %q matched %d certificates", targetThumbprint, len(matches))
 		}
-		return winstore.WinCertInfo{}, fmt.Errorf("no certificate found matching thumbprint %q", targetThumbprint)
+		return certstore.CertificateInfo{}, fmt.Errorf("no certificate found matching thumbprint %q", targetThumbprint)
 	}
 
 	fmt.Println("Available certificates:")
@@ -69,7 +71,7 @@ func selectCertificate(certs []winstore.WinCertInfo, targetThumbprint string, re
 
 	idx, err := readChoice(reader, len(certs))
 	if err != nil {
-		return winstore.WinCertInfo{}, err
+		return certstore.CertificateInfo{}, err
 	}
 	return certs[idx], nil
 }
@@ -86,7 +88,7 @@ func main() {
 		targetThumbprint = *cert
 	}
 
-	certs, err := winstore.ListCertificates()
+	certs, err := certstore.ListCertificates()
 	if err != nil {
 		fatal(err)
 	}
@@ -120,10 +122,10 @@ func main() {
 	}
 
 	digest := sha256.Sum256([]byte(text))
-	signResp, err := winstore.SignHash(
+	signResp, err := certstore.SignHash(
 		selected.Thumbprint,
 		digest[:],
-		winstore.HashSHA256,
+		certstore.HashSHA256,
 		rsaPadding,
 	)
 	if err != nil {
@@ -136,9 +138,9 @@ func main() {
 
 	var paddingStr string
 	switch signResp.Padding {
-	case winstore.RSAPaddingPKCS1:
+	case certstore.RSAPaddingPKCS1:
 		paddingStr = "PKCS1"
-	case winstore.RSAPaddingPSS:
+	case certstore.RSAPaddingPSS:
 		paddingStr = "PSS"
 	default:
 		paddingStr = "UNSPECIFIED"
@@ -149,7 +151,7 @@ func main() {
 	fmt.Printf("Signature (hex): %s\n", hex.EncodeToString(signResp.Signature))
 }
 
-func resolvePadding(reader *bufio.Reader, flagValue string) (winstore.RSAPadding, error) {
+func resolvePadding(reader *bufio.Reader, flagValue string) (certstore.RSAPadding, error) {
 	value := strings.ToLower(strings.TrimSpace(flagValue))
 	if value == "" {
 		fmt.Print("RSA padding [pkcs1/pss] (default pkcs1): ")
@@ -161,9 +163,9 @@ func resolvePadding(reader *bufio.Reader, flagValue string) (winstore.RSAPadding
 	}
 	switch value {
 	case "", "pkcs1", "pkcs1v15", "pkcs#1":
-		return winstore.RSAPaddingPKCS1, nil
+		return certstore.RSAPaddingPKCS1, nil
 	case "pss", "rsapss", "rsa-pss":
-		return winstore.RSAPaddingPSS, nil
+		return certstore.RSAPaddingPSS, nil
 	default:
 		return 0, fmt.Errorf("padding must be pkcs1 or pss")
 	}

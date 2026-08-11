@@ -1,6 +1,6 @@
 //go:build windows
 
-package winstore
+package certstore
 
 import (
 	"crypto"
@@ -32,7 +32,6 @@ var (
 
 	winCryptAcquireCertificatePrivateKey = winCrypt32Extra.NewProc("CryptAcquireCertificatePrivateKey")
 	winCertGetCertificateContextProperty = winCrypt32Extra.NewProc("CertGetCertificateContextProperty")
-	winCertFindCertificateInStore        = winCrypt32Extra.NewProc("CertFindCertificateInStore")
 	winNCryptSignHash                    = winNCrypt.NewProc("NCryptSignHash")
 	winNCryptGetProperty                 = winNCrypt.NewProc("NCryptGetProperty")
 	winNCryptFreeObject                  = winNCrypt.NewProc("NCryptFreeObject")

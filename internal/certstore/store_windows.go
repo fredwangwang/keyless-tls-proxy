@@ -1,6 +1,6 @@
 //go:build windows
 
-package winstore
+package certstore
 
 import (
 	"crypto/ecdsa"
@@ -146,35 +146,18 @@ func findCertByThumbprint(store windows.Handle, thumbprint string) (*windows.Cer
 		return nil, ErrCertificateNotFound
 	}
 
-	ctx, err := certFindCertificateInStore(
+	ctx, err := windows.CertFindCertificateInStore(
 		store,
 		winEncodingX509ASN|winEncodingPKCS7,
 		0,
 		winFindHashStr,
-		uintptr(unsafe.Pointer(ptr)),
+		unsafe.Pointer(ptr),
+		nil,
 	)
 	if err != nil || ctx == nil {
 		return nil, ErrCertificateNotFound
 	}
 	return ctx, nil
-}
-
-func certFindCertificateInStore(store windows.Handle, encodingType, flags, findType uint32, param uintptr) (*windows.CertContext, error) {
-	r, _, errno := winCertFindCertificateInStore.Call(
-		uintptr(store),
-		uintptr(encodingType),
-		uintptr(flags),
-		uintptr(findType),
-		param,
-		0,
-	)
-	if r == 0 {
-		if errno == windows.ERROR_SUCCESS {
-			return nil, nil
-		}
-		return nil, errno
-	}
-	return (*windows.CertContext)(unsafe.Pointer(r)), nil
 }
 
 func thumbprintFromCert(cert *x509.Certificate) string {

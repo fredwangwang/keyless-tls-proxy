@@ -1,4 +1,4 @@
-package winstore
+package certstore
 
 import (
 	"crypto"
@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	ErrUnsupportedPlatform = errors.New("certificate store operations require Windows")
+	ErrUnsupportedPlatform = errors.New("certificate store operations require Windows or macOS")
 	ErrCertificateNotFound = errors.New("certificate not found")
 	ErrNoPrivateKey        = errors.New("certificate has no accessible private key")
 	ErrInvalidDigest       = errors.New("digest length does not match hash algorithm")
 	ErrInvalidPadding      = errors.New("PSS padding is only supported for RSA keys")
 )
 
-// CertificateInfo describes a certificate in the Windows MY store.
+// CertificateInfo describes a certificate retrieved from the system certificate store (Windows MY store or macOS Keychain).
 type CertificateInfo struct {
 	Thumbprint     string
 	Subject        string
