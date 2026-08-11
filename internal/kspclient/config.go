@@ -33,6 +33,22 @@ func LoadConfig(path string) (*Config, error) {
 	return &cfg, nil
 }
 
+// LoadConfigFromEnv builds a Config from the KSP11_ADDR / KSP11_CA /
+// KSP11_CERT / KSP11_KEY environment variables. Returns nil when KSP11_ADDR
+// is unset. Used by the Linux PKCS#11 bridge.
+func LoadConfigFromEnv() *Config {
+	addr := os.Getenv("KSP11_ADDR")
+	if addr == "" {
+		return nil
+	}
+	return &Config{
+		Addr: addr,
+		CA:   os.Getenv("KSP11_CA"),
+		Cert: os.Getenv("KSP11_CERT"),
+		Key:  os.Getenv("KSP11_KEY"),
+	}
+}
+
 func SaveConfig(cfg *Config, path string) error {
 	if path == "" {
 		path = kspcommon.ConfigPath()

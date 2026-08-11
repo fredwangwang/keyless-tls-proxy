@@ -1,29 +1,42 @@
 /*
- * ksp11.c — minimal PKCS#11 v2.40 software token module for testing
- * keyless-tls-proxy signing with OpenSSL's pkcs11-provider.
+ * ksp11.c — keyless PKCS#11 v2.40 software token module for Linux.
  *
- * The token holds a SINGLE private key (RSA or EC) loaded from a PEM file
- * at C_Initialize time. The key file is taken from the KSP11_KEY_PATH
- * environment variable and defaults to ./test-key.pem.
+ * The module holds NO private keys locally. Certificates and keys live on the
+ * keyless-tls-proxy cert-server; every signing request is forwarded over gRPC
+ * (mTLS) through the cgo tpmcert bridge that is statically linked into this
+ * .so, and the signature is returned to the caller (e.g. OpenSSL's
+ * pkcs11-provider). This mirrors the Windows KSP DLL (ksp/ksp.c) architecture:
+ *
+ *   openssl ──PKCS#11──> ksp11.so ──tpmcert_*──> [cgo bridge] ──gRPC──> cert-server
+ *
+ * Configuration (read by the bridge at C_Initialize):
+ *   env  : KSP11_ADDR, KSP11_CA, KSP11_CERT, KSP11_KEY
+ *   file : JSON config {"addr","ca","cert","key"} at $KSP11_CONFIG, or
+ *          $XDG_CONFIG_HOME/fredprx-ksp/config.json
  *
  * Implemented:
  *   - slot/token/session management (one slot, RO sessions, no PIN)
- *   - object enumeration (one private + one public key object)
- *   - attribute retrieval (CKA_MODULUS/CKA_PUBLIC_EXPONENT for RSA,
- *     CKA_EC_PARAMS/CKA_EC_POINT for EC; private components are sensitive)
- *   - signing: CKM_RSA_PKCS, CKM_RSA_PKCS_PSS, CKM_SHA{256,384,512}_RSA_PKCS[_PSS],
- *     CKM_ECDSA, CKM_ECDSA_SHA{256,384,512}, single- and multi-part
- *   - random generation
+ *   - one private-key object per remote certificate (CKA_ID = thumbprint,
+ *     CKA_LABEL = subject; RSA modulus/exponent or EC params/point parsed from
+ *     the certificate)
+ *   - signing, single- and multi-part: CKM_RSA_PKCS, CKM_RSA_PKCS_PSS,
+ *     CKM_SHA{256,384,512}_RSA_PKCS[_PSS], CKM_ECDSA,
+ *     CKM_ECDSA_SHA{256,384,512} — digests are hashed locally, then signed by
+ *     the server via tpmcert_sign_hash
+ *   - C_GenerateRandom
  *
- * Everything else returns CKR_FUNCTION_NOT_SUPPORTED.
- *
- * Build:  gcc -shared -fPIC -I/usr/include/p11-kit-1 -o ksp11.so ksp11.c -lcrypto
- * Test:   ./test-sign.sh   (or see README.md)
+ * Build (see Makefile): cgo bridge is compiled with
+ *   go build -buildmode=c-archive ./internal/kspbridge
+ * then linked together with gcc -shared.
  */
+
+#define _GNU_SOURCE
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <dlfcn.h>
 
 #include <p11-kit/pkcs11.h>
 
@@ -31,21 +44,78 @@
 #include <openssl/core_names.h>
 #include <openssl/ec.h>
 #include <openssl/ecdsa.h>
-#include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/objects.h>
-#include <openssl/pem.h>
 #include <openssl/rand.h>
-#include <openssl/rsa.h>
+#include <openssl/x509.h>
+
+#include "../ksp/tpmcert_bridge.h"
+
+/* ---------------- cgo bridge loading (dlopen) ---------------- */
+
+/* The Go gRPC bridge lives in libtpmcertclient.so next to this module; the Go
+ * runtime must be loaded in c-shared mode (not c-archive) to run safely inside
+ * a foreign process. Resolve the bridge functions once at C_Initialize. */
+static void *g_bridge = NULL;
+
+static int (*bridge_init)(const char *);
+static void (*bridge_shutdown)(void);
+static int (*bridge_reload_manifest)(void);
+static int (*bridge_installed_count)(void);
+static int (*bridge_get_installed)(int, tpmcert_key_info *);
+static int (*bridge_find_installed)(const char *, tpmcert_key_info *);
+static void (*bridge_free_key_info)(tpmcert_key_info *);
+static int (*bridge_sign_hash)(const char *, const uint8_t *, size_t, int, int, uint8_t *, size_t *);
+
+#define BRIDGE_SO_NAME "libtpmcertclient.so"
+
+static int bridge_load(void) {
+    Dl_info info;
+    if (!dladdr((void *)C_Initialize, &info) || !info.dli_fname) {
+        fprintf(stderr, "ksp11: cannot locate module path\n");
+        return 0;
+    }
+    char path[PATH_MAX + 64];
+    snprintf(path, sizeof(path), "%s", info.dli_fname);
+    char *slash = strrchr(path, '/');
+    if (slash) {
+        *slash = '\0';
+    } else {
+        strcpy(path, ".");
+    }
+    snprintf(path + strlen(path), sizeof(path) - strlen(path), "/%s", BRIDGE_SO_NAME);
+
+    g_bridge = dlopen(path, RTLD_NOW | RTLD_LOCAL);
+    if (!g_bridge) {
+        fprintf(stderr, "ksp11: dlopen %s: %s\n", path, dlerror());
+        return 0;
+    }
+#define KSP11_LOAD(sym)                                                         \
+    do {                                                                        \
+        *(void **)(&bridge_##sym) = dlsym(g_bridge, "tpmcert_" #sym);          \
+        if (!bridge_##sym) {                                                    \
+            fprintf(stderr, "ksp11: dlsym tpmcert_" #sym " failed: %s\n",       \
+                    dlerror());                                                 \
+            return 0;                                                           \
+        }                                                                       \
+    } while (0)
+    KSP11_LOAD(init);
+    KSP11_LOAD(shutdown);
+    KSP11_LOAD(reload_manifest);
+    KSP11_LOAD(installed_count);
+    KSP11_LOAD(get_installed);
+    KSP11_LOAD(find_installed);
+    KSP11_LOAD(free_key_info);
+    KSP11_LOAD(sign_hash);
+#undef KSP11_LOAD
+    return 1;
+}
 
 /* ---------------- token configuration ---------------- */
 
-#define TOKEN_LABEL    "ksp11-token"
-#define OBJECT_LABEL   "test-key"
-#define OBJECT_ID      "\x01"
-#define OBJECT_ID_LEN  1
+#define TOKEN_LABEL  "ksp11-token"
 
-/* Debug logging: set KSP11_DEBUG=1 to trace provider calls. */
+/* Debug logging: set KSP11_DEBUG=1 to trace calls. */
 static int dbg_enabled(void) {
     static int v = -1;
     if (v < 0) {
@@ -55,21 +125,32 @@ static int dbg_enabled(void) {
 }
 #define DBG(...) do { if (dbg_enabled()) { fprintf(stderr, "ksp11: " __VA_ARGS__); } } while (0)
 
+/* ---------------- objects (one per remote certificate) ---------------- */
+
+typedef struct {
+    CK_OBJECT_HANDLE handle;
+    CK_KEY_TYPE ktype;          /* CKK_RSA or CKK_EC */
+    int key_size;               /* bits */
+    char thumbprint[64];
+    char label[512];
+    CK_BYTE id[20];
+    CK_ULONG id_len;
+    CK_BYTE modulus[512];
+    CK_ULONG modulus_len;
+    CK_BYTE pubexp[8];
+    CK_ULONG pubexp_len;
+    CK_BYTE ec_params[64];
+    CK_ULONG ec_params_len;
+    CK_BYTE ec_point[512];
+    CK_ULONG ec_point_len;
+} ksp_object;
+
+static ksp_object *g_objects = NULL;
+static CK_ULONG g_object_count = 0;
+
 /* ---------------- global state ---------------- */
 
 static int g_initialized = 0;
-static EVP_PKEY *g_key = NULL;
-static CK_KEY_TYPE g_key_type = 0; /* CKK_RSA or CKK_EC */
-
-/* public components, derived at C_Initialize */
-static CK_BYTE g_modulus[1024];
-static CK_ULONG g_modulus_len = 0;
-static CK_BYTE g_pubexp[8];
-static CK_ULONG g_pubexp_len = 0;
-static CK_BYTE g_ecparams[64];
-static CK_ULONG g_ecparams_len = 0;
-static CK_BYTE g_ecpoint[512];
-static CK_ULONG g_ecpoint_len = 0;
 
 /* ---------------- sessions ---------------- */
 
@@ -97,31 +178,23 @@ static ksp_session *find_session(CK_SESSION_HANDLE h) {
 
 typedef struct {
     int active;
-    int digest_mech;      /* mechanism hashes input internally */
-    int pss;              /* RSA-PSS padding */
-    const EVP_MD *md;     /* digest for digest mechanisms */
-    int saltlen;          /* PSS salt length (0 => md size) */
-    EVP_PKEY_CTX *raw_ctx; /* one-shot context (raw mechanisms) */
-    EVP_MD_CTX *md_ctx;    /* multi-part context (digest mechanisms) */
-    CK_BYTE *buf;          /* accumulated input for raw multi-part */
+    int obj_index;            /* index into g_objects */
+    int digest_mech;          /* mechanism hashes input internally */
+    int pss;                  /* RSA-PSS padding */
+    const EVP_MD *md;         /* digest for digest mechanisms */
+    int hash_alg;             /* 1=sha256 2=sha384 3=sha512, 0 = derive */
+    CK_BYTE *buf;             /* accumulated input */
     CK_ULONG buflen, bufcap;
+    CK_BYTE *cached;          /* signature cached for the size-query call */
+    CK_ULONG cached_len;
 } ksp_sign;
 
 static ksp_sign g_sign[MAX_SESSIONS];
 
 static void sign_reset(ksp_sign *st) {
-    if (st->raw_ctx) {
-        EVP_PKEY_CTX_free(st->raw_ctx);
-        st->raw_ctx = NULL;
-    }
-    if (st->md_ctx) {
-        EVP_MD_CTX_free(st->md_ctx);
-        st->md_ctx = NULL;
-    }
     free(st->buf);
-    st->buf = NULL;
-    st->buflen = st->bufcap = 0;
-    st->active = 0;
+    free(st->cached);
+    memset(st, 0, sizeof(*st));
 }
 
 /* ---------------- mechanisms ---------------- */
@@ -158,12 +231,8 @@ static const ksp_mech *find_mech(CK_MECHANISM_TYPE t) {
     return NULL;
 }
 
-static int mech_for_key(CK_MECHANISM_TYPE t) {
-    const ksp_mech *m = find_mech(t);
-    if (!m) {
-        return 0;
-    }
-    if (g_key_type == CKK_RSA) {
+static int mech_ok_for_type(CK_MECHANISM_TYPE t, CK_KEY_TYPE ktype) {
+    if (ktype == CKK_RSA) {
         return t == CKM_RSA_PKCS || t == CKM_RSA_PKCS_PSS ||
                t == CKM_SHA256_RSA_PKCS || t == CKM_SHA384_RSA_PKCS || t == CKM_SHA512_RSA_PKCS ||
                t == CKM_SHA256_RSA_PKCS_PSS || t == CKM_SHA384_RSA_PKCS_PSS || t == CKM_SHA512_RSA_PKCS_PSS;
@@ -171,137 +240,180 @@ static int mech_for_key(CK_MECHANISM_TYPE t) {
     return t == CKM_ECDSA || t == CKM_ECDSA_SHA256 || t == CKM_ECDSA_SHA384 || t == CKM_ECDSA_SHA512;
 }
 
-/* ---------------- objects ---------------- */
+/* ---------------- helpers ---------------- */
 
-#define PRIV_HANDLE 1
-#define PUB_HANDLE  2
-
-static CK_OBJECT_CLASS object_class(CK_OBJECT_HANDLE h) {
-    switch (h) {
-    case PRIV_HANDLE:
-        return CKO_PRIVATE_KEY;
-    case PUB_HANDLE:
-        return CKO_PUBLIC_KEY;
-    default:
-        return 0;
-    }
+static int hexval(char c) {
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+    if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+    return -1;
 }
 
-/* ---------------- find state ---------------- */
-
-static CK_OBJECT_HANDLE g_find_handles[2];
-static CK_ULONG g_find_n = 0, g_find_pos = 0;
-static int g_find_active = 0;
-
-/* ---------------- key loading ---------------- */
-
-static CK_RV load_key(void) {
-    const char *path = getenv("KSP11_KEY_PATH");
-    if (!path || !*path) {
-        path = "./test-key.pem";
+static CK_ULONG hex_decode(const char *hex, CK_BYTE *out, CK_ULONG outcap) {
+    size_t len = strlen(hex);
+    CK_ULONG n = 0;
+    for (size_t i = 0; i + 1 < len && n < outcap; i += 2) {
+        int hi = hexval(hex[i]);
+        int lo = hexval(hex[i + 1]);
+        if (hi < 0 || lo < 0) {
+            break;
+        }
+        out[n++] = (CK_BYTE)((hi << 4) | lo);
     }
-
-    FILE *f = fopen(path, "r");
-    if (!f) {
-        fprintf(stderr, "ksp11: cannot open key file %s (set KSP11_KEY_PATH)\n", path);
-        return CKR_DEVICE_ERROR;
-    }
-    EVP_PKEY *key = PEM_read_PrivateKey(f, NULL, NULL, NULL);
-    fclose(f);
-    if (!key) {
-        fprintf(stderr, "ksp11: cannot parse key file %s\n", path);
-        ERR_print_errors_fp(stderr);
-        return CKR_DEVICE_ERROR;
-    }
-
-    g_key = key;
-    int base = EVP_PKEY_base_id(key);
-    if (base == EVP_PKEY_RSA) {
-        g_key_type = CKK_RSA;
-    } else if (base == EVP_PKEY_EC) {
-        g_key_type = CKK_EC;
-    } else {
-        fprintf(stderr, "ksp11: unsupported key type %d (RSA or EC only)\n", base);
-        EVP_PKEY_free(g_key);
-        g_key = NULL;
-        return CKR_KEY_TYPE_INCONSISTENT;
-    }
-    return CKR_OK;
+    return n;
 }
 
-static CK_RV derive_attrs(void) {
-    if (g_key_type == CKK_RSA) {
-        BIGNUM *n = NULL, *e = NULL;
-        if (!EVP_PKEY_get_bn_param(g_key, OSSL_PKEY_PARAM_RSA_N, &n) ||
-            !EVP_PKEY_get_bn_param(g_key, OSSL_PKEY_PARAM_RSA_E, &e)) {
+/* Parse the certificate's public key into CKA_MODULUS / CKA_PUBLIC_EXPONENT
+ * (RSA) or CKA_EC_PARAMS / CKA_EC_POINT (EC). */
+static void parse_cert_pubkey(const uint8_t *der, size_t derlen, ksp_object *o) {
+    const unsigned char *p = der;
+    X509 *x = d2i_X509(NULL, &p, (long)derlen);
+    if (!x) {
+        return;
+    }
+    EVP_PKEY *pk = X509_get_pubkey(x);
+    if (pk) {
+        int base = EVP_PKEY_base_id(pk);
+        if (base == EVP_PKEY_RSA) {
+            o->ktype = CKK_RSA;
+            BIGNUM *n = NULL, *e = NULL;
+            if (EVP_PKEY_get_bn_param(pk, OSSL_PKEY_PARAM_RSA_N, &n) &&
+                EVP_PKEY_get_bn_param(pk, OSSL_PKEY_PARAM_RSA_E, &e)) {
+                o->modulus_len = BN_bn2bin(n, o->modulus);
+                o->pubexp_len = BN_bn2bin(e, o->pubexp);
+            }
             BN_free(n);
             BN_free(e);
-            return CKR_DEVICE_ERROR;
+        } else if (base == EVP_PKEY_EC) {
+            o->ktype = CKK_EC;
+            char curve[64] = {0};
+            if (EVP_PKEY_get_utf8_string_param(pk, OSSL_PKEY_PARAM_GROUP_NAME,
+                                               curve, sizeof(curve), NULL)) {
+                int nid = OBJ_txt2nid(curve);
+                if (nid != NID_undef) {
+                    ASN1_OBJECT *obj = OBJ_nid2obj(nid);
+                    o->ec_params_len = i2d_ASN1_OBJECT(obj, NULL);
+                    if (o->ec_params_len <= sizeof(o->ec_params)) {
+                        unsigned char *q = o->ec_params;
+                        i2d_ASN1_OBJECT(obj, &q);
+                    }
+                }
+            }
+            CK_BYTE raw[256];
+            size_t rawlen = 0;
+            if (EVP_PKEY_get_octet_string_param(pk, OSSL_PKEY_PARAM_PUB_KEY,
+                                                raw, sizeof(raw), &rawlen) &&
+                rawlen <= 254) {
+                o->ec_point[0] = 0x04; /* DER OCTET STRING wrap */
+                o->ec_point[1] = (CK_BYTE)rawlen;
+                memcpy(o->ec_point + 2, raw, rawlen);
+                o->ec_point_len = rawlen + 2;
+            }
         }
-        g_modulus_len = BN_bn2bin(n, g_modulus);
-        g_pubexp_len = BN_bn2bin(e, g_pubexp);
-        BN_free(n);
-        BN_free(e);
-        return CKR_OK;
+        EVP_PKEY_free(pk);
     }
+    X509_free(x);
+}
 
-    /* EC: CKA_EC_PARAMS = DER of curve OID, CKA_EC_POINT = DER OCTET STRING
-     * wrapping the ANSI X9.62 uncompressed point. */
-    char curve[64] = {0};
-    if (!EVP_PKEY_get_utf8_string_param(g_key, OSSL_PKEY_PARAM_GROUP_NAME,
-                                        curve, sizeof(curve), NULL)) {
-        return CKR_DEVICE_ERROR;
-    }
-    int nid = OBJ_txt2nid(curve);
-    if (nid == NID_undef) {
-        return CKR_DEVICE_ERROR;
-    }
-    ASN1_OBJECT *obj = OBJ_nid2obj(nid);
-    g_ecparams_len = i2d_ASN1_OBJECT(obj, NULL);
-    if (g_ecparams_len > sizeof(g_ecparams)) {
-        return CKR_DEVICE_ERROR;
-    }
-    unsigned char *p = g_ecparams;
-    i2d_ASN1_OBJECT(obj, &p);
+/* DigestInfo prefixes for raw CKM_RSA_PKCS input parsing. */
+static const unsigned char DI_PREFIX_SHA256[19] = {0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05, 0x00, 0x04, 0x20};
+static const unsigned char DI_PREFIX_SHA384[19] = {0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x02, 0x05, 0x00, 0x04, 0x30};
+static const unsigned char DI_PREFIX_SHA512[19] = {0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x03, 0x05, 0x00, 0x04, 0x40};
 
-    CK_BYTE raw[256];
-    size_t rawlen = 0;
-    if (!EVP_PKEY_get_octet_string_param(g_key, OSSL_PKEY_PARAM_PUB_KEY,
-                                         raw, sizeof(raw), &rawlen)) {
-        return CKR_DEVICE_ERROR;
+static int hash_alg_from_len(CK_ULONG len) {
+    switch (len) {
+    case 48:
+        return 2;
+    case 64:
+        return 3;
+    default:
+        return 1;
     }
-    if (rawlen < 128) {
-        g_ecpoint[0] = 0x04; /* OCTET STRING */
-        g_ecpoint[1] = (CK_BYTE)rawlen;
-        memcpy(g_ecpoint + 2, raw, rawlen);
-        g_ecpoint_len = rawlen + 2;
-    } else {
-        g_ecpoint[0] = 0x04; /* OCTET STRING, long-form length */
-        g_ecpoint[1] = 0x81;
-        g_ecpoint[2] = (CK_BYTE)rawlen;
-        memcpy(g_ecpoint + 3, raw, rawlen);
-        g_ecpoint_len = rawlen + 3;
+}
+
+/* Extract the raw digest (+ hash algorithm) from raw RSA PKCS#1 input, which
+ * is either a DER DigestInfo (with prefix) or a bare digest. */
+static int parse_digest_info(const CK_BYTE *data, CK_ULONG len,
+                             CK_BYTE *digest, CK_ULONG *digest_len, int *hash_alg) {
+    if (len == 32 || len == 48 || len == 64) {
+        memcpy(digest, data, len);
+        *digest_len = len;
+        *hash_alg = hash_alg_from_len(len);
+        return 1;
     }
-    return CKR_OK;
+    const struct {
+        const unsigned char *prefix;
+        int hash_alg;
+        CK_ULONG digest_len;
+    } tbl[] = {
+        { DI_PREFIX_SHA256, 1, 32 },
+        { DI_PREFIX_SHA384, 2, 48 },
+        { DI_PREFIX_SHA512, 3, 64 },
+    };
+    for (int i = 0; i < 3; i++) {
+        if (len == 19 + tbl[i].digest_len &&
+            memcmp(data, tbl[i].prefix, 19) == 0) {
+            memcpy(digest, data + 19, tbl[i].digest_len);
+            *digest_len = tbl[i].digest_len;
+            *hash_alg = tbl[i].hash_alg;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* pkcs11-provider expects ECDSA signatures as raw r||s (not DER), so convert
+ * the DER signature returned by the server. */
+static int ecdsa_der_to_raw(const unsigned char *der, size_t derlen, int field,
+                            CK_BYTE **out, CK_ULONG *outlen) {
+    const unsigned char *p = der;
+    ECDSA_SIG *s = d2i_ECDSA_SIG(NULL, &p, (long)derlen);
+    if (!s) {
+        return 0;
+    }
+    const BIGNUM *r = NULL, *ss = NULL;
+    ECDSA_SIG_get0(s, &r, &ss);
+    CK_BYTE *raw = malloc(2 * field);
+    if (!raw) {
+        ECDSA_SIG_free(s);
+        return 0;
+    }
+    if (BN_bn2binpad(r, raw, field) < 0 || BN_bn2binpad(ss, raw + field, field) < 0) {
+        free(raw);
+        ECDSA_SIG_free(s);
+        return 0;
+    }
+    ECDSA_SIG_free(s);
+    *out = raw;
+    *outlen = (CK_ULONG)(2 * field);
+    return 1;
 }
 
 /* ---------------- attribute helpers ---------------- */
 
-/* Returns the size of the attribute value, 0 when unknown/invalid.
- * Sets *sensitive=1 for private key material that must not be disclosed. */
+static ksp_object *object_by_handle(CK_OBJECT_HANDLE h) {
+    for (CK_ULONG i = 0; i < g_object_count; i++) {
+        if (g_objects[i].handle == h) {
+            return &g_objects[i];
+        }
+    }
+    return NULL;
+}
+
 static CK_ULONG attr_size(CK_OBJECT_HANDLE h, CK_ATTRIBUTE_TYPE type, int *sensitive) {
-    CK_OBJECT_CLASS cls = object_class(h);
+    ksp_object *o = object_by_handle(h);
+    if (!o) {
+        return 0;
+    }
     switch (type) {
     case CKA_CLASS:
         return sizeof(CK_OBJECT_CLASS);
     case CKA_KEY_TYPE:
         return sizeof(CK_KEY_TYPE);
-    case CKA_KEY_GEN_MECHANISM:
-        return sizeof(CK_MECHANISM_TYPE);
     case CKA_ID:
-        return OBJECT_ID_LEN;
+        return o->id_len;
     case CKA_LABEL:
-        return sizeof(OBJECT_LABEL) - 1;
+        return strlen(o->label);
     case CKA_TOKEN:
     case CKA_PRIVATE:
     case CKA_MODIFIABLE:
@@ -320,13 +432,13 @@ static CK_ULONG attr_size(CK_OBJECT_HANDLE h, CK_ATTRIBUTE_TYPE type, int *sensi
     case CKA_NEVER_EXTRACTABLE:
         return sizeof(CK_BBOOL);
     case CKA_MODULUS:
-        return (g_key_type == CKK_RSA) ? g_modulus_len : 0;
+        return o->modulus_len;
     case CKA_PUBLIC_EXPONENT:
-        return (g_key_type == CKK_RSA) ? g_pubexp_len : 0;
+        return o->pubexp_len;
     case CKA_EC_PARAMS:
-        return (g_key_type == CKK_EC) ? g_ecparams_len : 0;
+        return o->ec_params_len;
     case CKA_EC_POINT:
-        return (g_key_type == CKK_EC) ? g_ecpoint_len : 0;
+        return o->ec_point_len;
     case CKA_PRIVATE_EXPONENT:
     case CKA_PRIME_1:
     case CKA_PRIME_2:
@@ -334,28 +446,23 @@ static CK_ULONG attr_size(CK_OBJECT_HANDLE h, CK_ATTRIBUTE_TYPE type, int *sensi
     case CKA_EXPONENT_2:
     case CKA_COEFFICIENT:
     case CKA_VALUE:
-        if (cls == CKO_PRIVATE_KEY) {
-            *sensitive = 1;
-        }
+        *sensitive = 1;
         return 0;
     default:
         return 0;
     }
 }
 
-static CK_BBOOL bool_attr(CK_OBJECT_HANDLE h, CK_ATTRIBUTE_TYPE type) {
+static CK_BBOOL bool_attr(CK_ATTRIBUTE_TYPE type) {
     switch (type) {
     case CKA_TOKEN:
     case CKA_DESTROYABLE:
     case CKA_COPYABLE:
     case CKA_SIGN:
     case CKA_VERIFY:
-    case CKA_ENCRYPT:
-    case CKA_DECRYPT:
+    case CKA_SENSITIVE:
     case CKA_NEVER_EXTRACTABLE:
         return CK_TRUE;
-    case CKA_SENSITIVE:
-        return object_class(h) == CKO_PRIVATE_KEY ? CK_TRUE : CK_FALSE;
     default:
         return CK_FALSE;
     }
@@ -364,29 +471,63 @@ static CK_BBOOL bool_attr(CK_OBJECT_HANDLE h, CK_ATTRIBUTE_TYPE type) {
 /* ---------------- CK_FUNCTION_LIST entry points ---------------- */
 
 CK_RV C_Initialize(CK_VOID_PTR pInitArgs) {
+    DBG("C_Initialize pInitArgs=%p\n", pInitArgs);
     if (g_initialized) {
         return CKR_CRYPTOKI_ALREADY_INITIALIZED;
     }
     if (pInitArgs) {
         CK_C_INITIALIZE_ARGS *args = (CK_C_INITIALIZE_ARGS *)pInitArgs;
+        DBG("C_Initialize flags=0x%lx pReserved=%p\n",
+            (unsigned long)args->flags, args->pReserved);
         if (args->pReserved) {
             return CKR_ARGUMENTS_BAD;
         }
     }
 
+    /* Load the cgo gRPC bridge and connect to the cert-server. */
+    if (!bridge_load()) {
+        return CKR_DEVICE_ERROR;
+    }
+    const char *cfg = getenv("KSP11_CONFIG");
+    if (bridge_init(cfg) != TPMCERT_OK) {
+        fprintf(stderr, "ksp11: bridge init failed (cert-server unreachable or config missing)\n");
+        return CKR_DEVICE_ERROR;
+    }
+
+    /* Enumerate remote certificates into token objects. */
+    int n = bridge_installed_count();
+    if (n > 0) {
+        g_objects = calloc((size_t)n, sizeof(ksp_object));
+        if (!g_objects) {
+            bridge_shutdown();
+            return CKR_HOST_MEMORY;
+        }
+        for (int i = 0; i < n; i++) {
+            tpmcert_key_info info;
+            memset(&info, 0, sizeof(info));
+            if (bridge_get_installed(i, &info) != TPMCERT_OK) {
+                continue;
+            }
+            ksp_object *o = &g_objects[g_object_count];
+            o->handle = (CK_OBJECT_HANDLE)(g_object_count + 1);
+            o->key_size = info.key_size;
+            o->ktype = CKK_RSA; /* default; corrected by cert parse */
+            o->id_len = hex_decode(info.thumbprint, o->id, sizeof(o->id));
+            snprintf(o->thumbprint, sizeof(o->thumbprint), "%s", info.thumbprint);
+            snprintf(o->label, sizeof(o->label), "%s", info.subject);
+            if (info.cert_der != NULL && info.cert_der_len > 0) {
+                parse_cert_pubkey(info.cert_der, info.cert_der_len, o);
+            }
+            DBG("object %lu: %s type=%lu size=%d\n",
+                (unsigned long)o->handle, o->label,
+                (unsigned long)o->ktype, o->key_size);
+            g_object_count++;
+            bridge_free_key_info(&info);
+        }
+    }
+
     memset(g_sessions, 0, sizeof(g_sessions));
     memset(g_sign, 0, sizeof(g_sign));
-
-    CK_RV rv = load_key();
-    if (rv != CKR_OK) {
-        return rv;
-    }
-    rv = derive_attrs();
-    if (rv != CKR_OK) {
-        EVP_PKEY_free(g_key);
-        g_key = NULL;
-        return rv;
-    }
     g_initialized = 1;
     return CKR_OK;
 }
@@ -399,9 +540,13 @@ CK_RV C_Finalize(CK_VOID_PTR pReserved) {
         sign_reset(&g_sign[i]);
         g_sessions[i].open = 0;
     }
-    if (g_key) {
-        EVP_PKEY_free(g_key);
-        g_key = NULL;
+    free(g_objects);
+    g_objects = NULL;
+    g_object_count = 0;
+    bridge_shutdown();
+    if (g_bridge) {
+        dlclose(g_bridge);
+        g_bridge = NULL;
     }
     g_initialized = 0;
     return CKR_OK;
@@ -418,7 +563,7 @@ CK_RV C_GetInfo(CK_INFO_PTR pInfo) {
     pInfo->cryptokiVersion.major = 2;
     pInfo->cryptokiVersion.minor = 40;
     memcpy(pInfo->manufacturerID, "ksp11", 5);
-    memcpy(pInfo->libraryDescription, "ksp11 minimal software token", 29);
+    memcpy(pInfo->libraryDescription, "ksp11 keyless PKCS#11 (gRPC)", 29);
     pInfo->libraryVersion.major = 1;
     pInfo->libraryVersion.minor = 0;
     return CKR_OK;
@@ -431,7 +576,7 @@ CK_RV C_GetSlotList(CK_BBOOL tokenPresent, CK_SLOT_ID_PTR pSlotList, CK_ULONG_PT
     if (!g_initialized) {
         return CKR_CRYPTOKI_NOT_INITIALIZED;
     }
-    (void)tokenPresent; /* our single slot always has the token present */
+    (void)tokenPresent;
     if (pSlotList == NULL) {
         *pulCount = 1;
         return CKR_OK;
@@ -510,27 +655,18 @@ CK_RV C_GetMechanismList(CK_SLOT_ID slotID, CK_MECHANISM_TYPE_PTR pMechanismList
     if (!g_initialized) {
         return CKR_CRYPTOKI_NOT_INITIALIZED;
     }
-    CK_ULONG n = 0;
-    for (size_t i = 0; i < N_MECHS; i++) {
-        if (mech_for_key(ksp_mechs[i].type)) {
-            n++;
-        }
-    }
     if (pMechanismList == NULL) {
-        *pulCount = n;
+        *pulCount = N_MECHS;
         return CKR_OK;
     }
-    if (*pulCount < n) {
-        *pulCount = n;
+    if (*pulCount < N_MECHS) {
+        *pulCount = N_MECHS;
         return CKR_BUFFER_TOO_SMALL;
     }
-    CK_ULONG j = 0;
     for (size_t i = 0; i < N_MECHS; i++) {
-        if (mech_for_key(ksp_mechs[i].type)) {
-            pMechanismList[j++] = ksp_mechs[i].type;
-        }
+        pMechanismList[i] = ksp_mechs[i].type;
     }
-    *pulCount = n;
+    *pulCount = N_MECHS;
     return CKR_OK;
 }
 
@@ -544,12 +680,14 @@ CK_RV C_GetMechanismInfo(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type, CK_MECHANISM
     if (!g_initialized) {
         return CKR_CRYPTOKI_NOT_INITIALIZED;
     }
-    if (!mech_for_key(type)) {
+    if (!find_mech(type)) {
         return CKR_MECHANISM_INVALID;
     }
     memset(pInfo, 0, sizeof(*pInfo));
     pInfo->flags = CKF_SIGN | CKF_VERIFY;
-    if (g_key_type == CKK_RSA) {
+    if (type == CKM_RSA_PKCS || type == CKM_RSA_PKCS_PSS ||
+        type == CKM_SHA256_RSA_PKCS || type == CKM_SHA384_RSA_PKCS || type == CKM_SHA512_RSA_PKCS ||
+        type == CKM_SHA256_RSA_PKCS_PSS || type == CKM_SHA384_RSA_PKCS_PSS || type == CKM_SHA512_RSA_PKCS_PSS) {
         pInfo->ulMinKeySize = 1024;
         pInfo->ulMaxKeySize = 8192;
     } else {
@@ -574,8 +712,7 @@ CK_RV C_OpenSession(CK_SLOT_ID slotID, CK_FLAGS flags, CK_VOID_PTR pApplication,
         return CKR_SESSION_READ_ONLY;
     }
     (void)pApplication;
-    (void)Notify; /* application callbacks are not supported; ignored */
-
+    (void)Notify;
     int slot = -1;
     for (int i = 0; i < MAX_SESSIONS; i++) {
         if (!g_sessions[i].open) {
@@ -653,7 +790,7 @@ CK_RV C_Login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType,
         return CKR_USER_TYPE_INVALID;
     }
     (void)pPin;
-    (void)ulPinLen; /* token has no PIN; login always succeeds */
+    (void)ulPinLen;
     return CKR_OK;
 }
 
@@ -667,6 +804,63 @@ CK_RV C_Logout(CK_SESSION_HANDLE hSession) {
     return CKR_OK;
 }
 
+/* ---------------- find state ---------------- */
+
+static CK_OBJECT_HANDLE *g_find_handles = NULL;
+static CK_ULONG g_find_n = 0, g_find_pos = 0;
+static int g_find_active = 0;
+
+static int object_matches(CK_OBJECT_HANDLE h, CK_ATTRIBUTE_PTR tmpl, CK_ULONG n) {
+    ksp_object *o = object_by_handle(h);
+    if (!o) {
+        return 0;
+    }
+    for (CK_ULONG i = 0; i < n; i++) {
+        CK_ATTRIBUTE *a = &tmpl[i];
+        switch (a->type) {
+        case CKA_CLASS: {
+            if (a->ulValueLen != sizeof(CK_OBJECT_CLASS)) {
+                return 0;
+            }
+            CK_OBJECT_CLASS cls;
+            memcpy(&cls, a->pValue, sizeof(cls));
+            if (cls != CKO_PRIVATE_KEY) {
+                return 0;
+            }
+            break;
+        }
+        case CKA_KEY_TYPE: {
+            if (a->ulValueLen != sizeof(CK_KEY_TYPE)) {
+                return 0;
+            }
+            CK_KEY_TYPE kt;
+            memcpy(&kt, a->pValue, sizeof(kt));
+            if (kt != o->ktype) {
+                return 0;
+            }
+            break;
+        }
+        case CKA_LABEL: {
+            if (a->ulValueLen != strlen(o->label) ||
+                memcmp(a->pValue, o->label, a->ulValueLen) != 0) {
+                return 0;
+            }
+            break;
+        }
+        case CKA_ID: {
+            if (a->ulValueLen != o->id_len ||
+                memcmp(a->pValue, o->id, a->ulValueLen) != 0) {
+                return 0;
+            }
+            break;
+        }
+        default:
+            return 0;
+        }
+    }
+    return 1;
+}
+
 CK_RV C_FindObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount) {
     if (!g_initialized) {
         return CKR_CRYPTOKI_NOT_INITIALIZED;
@@ -677,61 +871,22 @@ CK_RV C_FindObjectsInit(CK_SESSION_HANDLE hSession, CK_ATTRIBUTE_PTR pTemplate, 
     if (g_find_active) {
         return CKR_OPERATION_ACTIVE;
     }
-
+    free(g_find_handles);
+    g_find_handles = NULL;
     g_find_n = 0;
-    for (int i = 0; i < 2; i++) {
-        CK_OBJECT_HANDLE h = (i == 0) ? PRIV_HANDLE : PUB_HANDLE;
-        int match = 1;
-        for (CK_ULONG j = 0; j < ulCount && match; j++) {
-            CK_ATTRIBUTE *a = &pTemplate[j];
-            switch (a->type) {
-            case CKA_CLASS: {
-                if (a->ulValueLen != sizeof(CK_OBJECT_CLASS)) {
-                    match = 0;
-                    break;
-                }
-                CK_OBJECT_CLASS cls;
-                memcpy(&cls, a->pValue, sizeof(cls));
-                if (cls != object_class(h)) {
-                    match = 0;
-                }
-                break;
-            }
-            case CKA_KEY_TYPE: {
-                if (a->ulValueLen != sizeof(CK_KEY_TYPE)) {
-                    match = 0;
-                    break;
-                }
-                CK_KEY_TYPE kt;
-                memcpy(&kt, a->pValue, sizeof(kt));
-                if (kt != g_key_type) {
-                    match = 0;
-                }
-                break;
-            }
-            case CKA_LABEL: {
-                if (a->ulValueLen != sizeof(OBJECT_LABEL) - 1 ||
-                    memcmp(a->pValue, OBJECT_LABEL, a->ulValueLen) != 0) {
-                    match = 0;
-                }
-                break;
-            }
-            case CKA_ID: {
-                if (a->ulValueLen != OBJECT_ID_LEN ||
-                    memcmp(a->pValue, OBJECT_ID, a->ulValueLen) != 0) {
-                    match = 0;
-                }
-                break;
-            }
-            default:
-                match = 0; /* unsupported filter attribute */
-            }
+    g_find_pos = 0;
+
+    if (g_object_count > 0) {
+        g_find_handles = malloc(g_object_count * sizeof(CK_OBJECT_HANDLE));
+        if (!g_find_handles) {
+            return CKR_HOST_MEMORY;
         }
-        if (match) {
-            g_find_handles[g_find_n++] = h;
+        for (CK_ULONG i = 0; i < g_object_count; i++) {
+            if (object_matches(g_objects[i].handle, pTemplate, ulCount)) {
+                g_find_handles[g_find_n++] = g_objects[i].handle;
+            }
         }
     }
-    g_find_pos = 0;
     g_find_active = 1;
     return CKR_OK;
 }
@@ -765,6 +920,10 @@ CK_RV C_FindObjectsFinal(CK_SESSION_HANDLE hSession) {
     if (!find_session(hSession)) {
         return CKR_SESSION_HANDLE_INVALID;
     }
+    free(g_find_handles);
+    g_find_handles = NULL;
+    g_find_n = 0;
+    g_find_pos = 0;
     g_find_active = 0;
     return CKR_OK;
 }
@@ -777,7 +936,8 @@ CK_RV C_GetAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject,
     if (!find_session(hSession)) {
         return CKR_SESSION_HANDLE_INVALID;
     }
-    if (object_class(hObject) == 0) {
+    ksp_object *o = object_by_handle(hObject);
+    if (!o) {
         return CKR_OBJECT_HANDLE_INVALID;
     }
     if (!pTemplate && ulCount > 0) {
@@ -815,25 +975,19 @@ CK_RV C_GetAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject,
         CK_BYTE tmp[1024];
         CK_BYTE *p = tmp;
         CK_BBOOL b;
+        CK_OBJECT_CLASS cls = CKO_PRIVATE_KEY;
         switch (a->type) {
-        case CKA_CLASS: {
-            CK_OBJECT_CLASS v = object_class(hObject);
-            memcpy(p, &v, sizeof(v));
+        case CKA_CLASS:
+            memcpy(p, &cls, sizeof(cls));
             break;
-        }
         case CKA_KEY_TYPE:
-            memcpy(p, &g_key_type, sizeof(g_key_type));
+            memcpy(p, &o->ktype, sizeof(o->ktype));
             break;
-        case CKA_KEY_GEN_MECHANISM: {
-            CK_MECHANISM_TYPE v = CKM_RSA_PKCS_KEY_PAIR_GEN;
-            memcpy(p, &v, sizeof(v));
-            break;
-        }
         case CKA_ID:
-            memcpy(p, OBJECT_ID, OBJECT_ID_LEN);
+            memcpy(p, o->id, o->id_len);
             break;
         case CKA_LABEL:
-            memcpy(p, OBJECT_LABEL, sizeof(OBJECT_LABEL) - 1);
+            memcpy(p, o->label, strlen(o->label));
             break;
         case CKA_TOKEN:
         case CKA_DESTROYABLE:
@@ -842,29 +996,29 @@ CK_RV C_GetAttributeValue(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject,
         case CKA_VERIFY:
         case CKA_ENCRYPT:
         case CKA_DECRYPT:
-        case CKA_NEVER_EXTRACTABLE:
-        case CKA_PRIVATE:
-        case CKA_MODIFIABLE:
         case CKA_WRAP:
         case CKA_UNWRAP:
+        case CKA_PRIVATE:
+        case CKA_MODIFIABLE:
         case CKA_EXTRACTABLE:
         case CKA_ALWAYS_AUTHENTICATE:
         case CKA_LOCAL:
         case CKA_SENSITIVE:
-            b = bool_attr(hObject, a->type);
+        case CKA_NEVER_EXTRACTABLE:
+            b = bool_attr(a->type);
             memcpy(p, &b, sizeof(b));
             break;
         case CKA_MODULUS:
-            memcpy(p, g_modulus, g_modulus_len);
+            memcpy(p, o->modulus, o->modulus_len);
             break;
         case CKA_PUBLIC_EXPONENT:
-            memcpy(p, g_pubexp, g_pubexp_len);
+            memcpy(p, o->pubexp, o->pubexp_len);
             break;
         case CKA_EC_PARAMS:
-            memcpy(p, g_ecparams, g_ecparams_len);
+            memcpy(p, o->ec_params, o->ec_params_len);
             break;
         case CKA_EC_POINT:
-            memcpy(p, g_ecpoint, g_ecpoint_len);
+            memcpy(p, o->ec_point, o->ec_point_len);
             break;
         default:
             a->ulValueLen = CK_UNAVAILABLE_INFORMATION;
@@ -893,13 +1047,169 @@ CK_RV C_GetObjectSize(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject,
     if (!find_session(hSession)) {
         return CKR_SESSION_HANDLE_INVALID;
     }
-    if (object_class(hObject) == 0) {
+    if (!object_by_handle(hObject)) {
         return CKR_OBJECT_HANDLE_INVALID;
     }
     if (!pulSize) {
         return CKR_ARGUMENTS_BAD;
     }
-    *pulSize = 0; /* unknown */
+    *pulSize = 0;
+    return CKR_OK;
+}
+
+/* ---------------- signing ---------------- */
+
+static CK_RV do_sign(ksp_sign *st, const CK_BYTE *data, CK_ULONG len,
+                     CK_BYTE_PTR pSignature, CK_ULONG_PTR pulSignatureLen) {
+    if (!st->active) {
+        return CKR_OPERATION_NOT_INITIALIZED;
+    }
+    if (!pulSignatureLen) {
+        return CKR_ARGUMENTS_BAD;
+    }
+    ksp_object *o = &g_objects[st->obj_index];
+    DBG("sign obj=%s hash_alg=%d pss=%d digest_mech=%d len=%lu\n",
+        o->thumbprint, st->hash_alg, st->pss, st->digest_mech, (unsigned long)len);
+
+    /* Use a signature cached by a previous size-query call. */
+    if (st->cached) {
+        CK_BYTE *sig = st->cached;
+        CK_ULONG sig_len = st->cached_len;
+        st->cached = NULL;
+        st->cached_len = 0;
+        if (pSignature == NULL) {
+            st->cached = sig;
+            st->cached_len = sig_len;
+            *pulSignatureLen = sig_len;
+            return CKR_OK;
+        }
+        if (*pulSignatureLen < sig_len) {
+            *pulSignatureLen = sig_len;
+            free(sig);
+            sign_reset(st);
+            return CKR_BUFFER_TOO_SMALL;
+        }
+        memcpy(pSignature, sig, sig_len);
+        *pulSignatureLen = sig_len;
+        free(sig);
+        sign_reset(st);
+        return CKR_OK;
+    }
+
+    /* Build the digest to send to the server. */
+    CK_BYTE digest[64];
+    CK_ULONG digest_len = 0;
+    int hash_alg = st->hash_alg;
+
+    if (st->digest_mech) {
+        EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
+        unsigned int dlen = 0;
+        int ok = mdctx != NULL &&
+                 EVP_DigestInit_ex(mdctx, st->md, NULL) == 1 &&
+                 EVP_DigestUpdate(mdctx, data, len) == 1 &&
+                 EVP_DigestFinal_ex(mdctx, digest, &dlen) == 1;
+        EVP_MD_CTX_free(mdctx);
+        if (!ok) {
+            sign_reset(st);
+            return CKR_FUNCTION_FAILED;
+        }
+        digest_len = dlen;
+    } else if (st->pss) {
+        /* input is the digest itself */
+        if (len > sizeof(digest)) {
+            sign_reset(st);
+            return CKR_DATA_INVALID;
+        }
+        memcpy(digest, data, len);
+        digest_len = len;
+        if (hash_alg == 0) {
+            hash_alg = hash_alg_from_len(len);
+        }
+    } else if (o->ktype == CKK_EC) {
+        /* input is the digest itself */
+        if (len > sizeof(digest)) {
+            sign_reset(st);
+            return CKR_DATA_INVALID;
+        }
+        memcpy(digest, data, len);
+        digest_len = len;
+        hash_alg = hash_alg_from_len(len);
+    } else {
+        /* RSA PKCS1: input is a DER DigestInfo (or a bare digest) */
+        if (!parse_digest_info(data, len, digest, &digest_len, &hash_alg)) {
+            sign_reset(st);
+            return CKR_DATA_INVALID;
+        }
+    }
+
+    int padding = st->pss ? 2 : 1;
+
+    size_t sig_len = 0;
+    if (bridge_sign_hash(o->thumbprint, digest, digest_len, hash_alg,
+                         padding, NULL, &sig_len) != TPMCERT_OK) {
+        DBG("sign RPC (size) failed\n");
+        sign_reset(st);
+        return CKR_FUNCTION_FAILED;
+    }
+    if (sig_len == 0 || sig_len > 1024 * 1024) {
+        sign_reset(st);
+        return CKR_FUNCTION_FAILED;
+    }
+    /* ECDSA signatures are randomized: the follow-up call can produce a
+     * slightly longer signature than the size query, so add slack. */
+    CK_ULONG sig_cap = sig_len + 64;
+    CK_BYTE *sig = malloc(sig_cap);
+    if (!sig) {
+        sign_reset(st);
+        return CKR_HOST_MEMORY;
+    }
+    size_t actual = sig_cap;
+    if (bridge_sign_hash(o->thumbprint, digest, digest_len, hash_alg,
+                         padding, sig, &actual) != TPMCERT_OK) {
+        DBG("sign RPC (data) failed\n");
+        free(sig);
+        sign_reset(st);
+        return CKR_FUNCTION_FAILED;
+    }
+    sig_len = actual;
+
+    /* pkcs11-provider expects ECDSA signatures as raw r||s. */
+    if (o->ktype == CKK_EC) {
+        int field = (o->key_size + 7) / 8;
+        if (field <= 0 || field > 128) {
+            free(sig);
+            sign_reset(st);
+            return CKR_FUNCTION_FAILED;
+        }
+        CK_BYTE *raw = NULL;
+        CK_ULONG rawlen = 0;
+        if (!ecdsa_der_to_raw(sig, sig_len, field, &raw, &rawlen)) {
+            free(sig);
+            sign_reset(st);
+            return CKR_FUNCTION_FAILED;
+        }
+        free(sig);
+        sig = raw;
+        sig_len = rawlen;
+    }
+
+    if (pSignature == NULL) {
+        /* Size query: cache the signature for the follow-up call. */
+        st->cached = sig;
+        st->cached_len = sig_len;
+        *pulSignatureLen = sig_len;
+        return CKR_OK;
+    }
+    if (*pulSignatureLen < sig_len) {
+        *pulSignatureLen = sig_len;
+        free(sig);
+        sign_reset(st);
+        return CKR_BUFFER_TOO_SMALL;
+    }
+    memcpy(pSignature, sig, sig_len);
+    *pulSignatureLen = sig_len;
+    free(sig);
+    sign_reset(st);
     return CKR_OK;
 }
 
@@ -911,7 +1221,8 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
     if (!s) {
         return CKR_SESSION_HANDLE_INVALID;
     }
-    if (hKey != PRIV_HANDLE) {
+    ksp_object *o = object_by_handle(hKey);
+    if (!o) {
         return CKR_KEY_HANDLE_INVALID;
     }
     if (!pMechanism) {
@@ -923,117 +1234,45 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism, CK_OBJ
     }
 
     const ksp_mech *m = find_mech(pMechanism->mechanism);
-    if (!m || !mech_for_key(pMechanism->mechanism)) {
+    if (!m || !mech_ok_for_type(pMechanism->mechanism, o->ktype)) {
         return CKR_MECHANISM_INVALID;
     }
-    DBG("C_SignInit mech=0x%lx key_type=%lu\n",
-        (unsigned long)pMechanism->mechanism, (unsigned long)g_key_type);
 
     sign_reset(st);
     st->active = 1;
+    st->obj_index = (int)(o - g_objects);
     st->digest_mech = m->digest_mech;
     st->pss = m->pss;
     st->md = m->md ? m->md() : NULL;
-    st->saltlen = 0;
+    st->hash_alg = 0;
 
-    if (m->pss && pMechanism->pParameter &&
-        pMechanism->ulParameterLen >= sizeof(CK_RSA_PKCS_PSS_PARAMS)) {
+    if (st->digest_mech) {
+        if (st->md == EVP_sha384()) {
+            st->hash_alg = 2;
+        } else if (st->md == EVP_sha512()) {
+            st->hash_alg = 3;
+        } else {
+            st->hash_alg = 1;
+        }
+    } else if (m->pss && pMechanism->pParameter &&
+               pMechanism->ulParameterLen >= sizeof(CK_RSA_PKCS_PSS_PARAMS)) {
         CK_RSA_PKCS_PSS_PARAMS *par = (CK_RSA_PKCS_PSS_PARAMS *)pMechanism->pParameter;
-        if (par->sLen != CK_UNAVAILABLE_INFORMATION) {
-            st->saltlen = (int)par->sLen;
+        switch (par->hashAlg) {
+        case CKM_SHA384:
+            st->hash_alg = 2;
+            break;
+        case CKM_SHA512:
+            st->hash_alg = 3;
+            break;
+        case CKM_SHA256:
+        default:
+            st->hash_alg = 1;
+            break;
         }
     }
 
-    if (m->digest_mech) {
-        st->md_ctx = EVP_MD_CTX_new();
-        if (!st->md_ctx) {
-            st->active = 0;
-            return CKR_HOST_MEMORY;
-        }
-        if (EVP_DigestSignInit(st->md_ctx, NULL, st->md, NULL, g_key) <= 0) {
-            fprintf(stderr, "ksp11: DigestSignInit failed\n");
-            sign_reset(st);
-            return CKR_FUNCTION_FAILED;
-        }
-        if (m->pss) {
-            EVP_PKEY_CTX *pctx = EVP_MD_CTX_pkey_ctx(st->md_ctx);
-            EVP_PKEY_CTX_set_rsa_padding(pctx, RSA_PKCS1_PSS_PADDING);
-            EVP_PKEY_CTX_set_rsa_pss_saltlen(pctx,
-                st->saltlen ? st->saltlen : EVP_MD_size(st->md));
-        }
-    } else {
-        st->raw_ctx = EVP_PKEY_CTX_new(g_key, NULL);
-        if (!st->raw_ctx) {
-            st->active = 0;
-            return CKR_HOST_MEMORY;
-        }
-        if (EVP_PKEY_sign_init(st->raw_ctx) <= 0) {
-            fprintf(stderr, "ksp11: PKEY_sign_init failed\n");
-            sign_reset(st);
-            return CKR_FUNCTION_FAILED;
-        }
-        if (m->pss) {
-            EVP_PKEY_CTX_set_rsa_padding(st->raw_ctx, RSA_PKCS1_PSS_PADDING);
-            const EVP_MD *md = st->md ? st->md : EVP_sha256();
-            EVP_PKEY_CTX_set_rsa_pss_saltlen(st->raw_ctx,
-                st->saltlen ? st->saltlen : EVP_MD_size(md));
-        } else if (g_key_type == CKK_RSA) {
-            EVP_PKEY_CTX_set_rsa_padding(st->raw_ctx, RSA_PKCS1_PADDING);
-        }
-    }
-    return CKR_OK;
-}
-
-/* pkcs11-provider expects ECDSA signatures as raw r||s (padded to the field
- * size), NOT DER-encoded (see p11prov_ecdsa_sign -> convert_ecdsa_raw_to_der
- * in latchset/pkcs11-provider src/sig/ecdsa.c). Convert the DER signature
- * produced by OpenSSL into the raw form. */
-static int ecdsa_der_to_raw(const unsigned char *der, size_t derlen,
-                            unsigned char **out, size_t *outlen) {
-    const unsigned char *p = der;
-    ECDSA_SIG *s = d2i_ECDSA_SIG(NULL, &p, (long)derlen);
-    if (!s) {
-        return 0;
-    }
-    const BIGNUM *r = NULL, *ss = NULL;
-    ECDSA_SIG_get0(s, &r, &ss);
-    int field = (EVP_PKEY_get_bits(g_key) + 7) / 8;
-    unsigned char *raw = malloc(2 * field);
-    if (!raw) {
-        ECDSA_SIG_free(s);
-        return 0;
-    }
-    if (BN_bn2binpad(r, raw, field) < 0 || BN_bn2binpad(ss, raw + field, field) < 0) {
-        free(raw);
-        ECDSA_SIG_free(s);
-        return 0;
-    }
-    ECDSA_SIG_free(s);
-    *out = raw;
-    *outlen = 2 * (size_t)field;
-    return 1;
-}
-
-/* Buffer dance shared by C_Sign and C_SignFinal: copy sig into the caller's
- * buffer, handling the NULL / too-small conventions, then complete the op. */
-static CK_RV sign_emit(ksp_sign *st, CK_BYTE *sig, CK_ULONG siglen,
-                       CK_BYTE_PTR pSignature, CK_ULONG_PTR pulSignatureLen) {
-    DBG("sign_emit siglen=%lu pSignature=%s *pulSignatureLen=%lu\n",
-        (unsigned long)siglen, pSignature ? "set" : "NULL",
-        pSignature ? (unsigned long)*pulSignatureLen : 0);
-    if (pSignature == NULL) {
-        *pulSignatureLen = siglen;
-        sign_reset(st);
-        return CKR_OK;
-    }
-    if (*pulSignatureLen < siglen) {
-        *pulSignatureLen = siglen;
-        sign_reset(st);
-        return CKR_BUFFER_TOO_SMALL;
-    }
-    memcpy(pSignature, sig, siglen);
-    *pulSignatureLen = siglen;
-    sign_reset(st);
+    DBG("C_SignInit mech=0x%lx obj=%s hash_alg=%d\n",
+        (unsigned long)pMechanism->mechanism, o->thumbprint, st->hash_alg);
     return CKR_OK;
 }
 
@@ -1047,74 +1286,7 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData, CK_ULONG ulDataLen,
         return CKR_SESSION_HANDLE_INVALID;
     }
     ksp_sign *st = &g_sign[s - g_sessions];
-    if (!st->active) {
-        return CKR_OPERATION_NOT_INITIALIZED;
-    }
-    if (!pulSignatureLen) {
-        return CKR_ARGUMENTS_BAD;
-    }
-    DBG("C_Sign data_len=%lu\n", (unsigned long)ulDataLen);
-
-    CK_BYTE *sig = NULL;
-    CK_ULONG siglen = 0;
-    int ok = 0;
-
-    if (st->digest_mech) {
-        if (EVP_DigestSignUpdate(st->md_ctx, pData, ulDataLen) <= 0 ||
-            EVP_DigestSignFinal(st->md_ctx, NULL, &siglen) <= 0) {
-            goto fail;
-        }
-        sig = malloc(siglen);
-        if (!sig) {
-            sign_reset(st);
-            return CKR_HOST_MEMORY;
-        }
-        if (EVP_DigestSignFinal(st->md_ctx, sig, &siglen) <= 0) {
-            goto fail;
-        }
-        ok = 1;
-    } else {
-        size_t len = 0;
-        if (EVP_PKEY_sign(st->raw_ctx, NULL, &len, pData, ulDataLen) <= 0) {
-            goto fail;
-        }
-        sig = malloc(len);
-        if (!sig) {
-            sign_reset(st);
-            return CKR_HOST_MEMORY;
-        }
-        if (EVP_PKEY_sign(st->raw_ctx, sig, &len, pData, ulDataLen) <= 0) {
-            goto fail;
-        }
-        siglen = len;
-        ok = 1;
-    }
-
-    if (ok && g_key_type == CKK_EC) {
-        unsigned char *raw = NULL;
-        size_t rawlen = 0;
-        if (!ecdsa_der_to_raw(sig, siglen, &raw, &rawlen)) {
-            free(sig);
-            ok = 0;
-            goto fail;
-        }
-        free(sig);
-        sig = raw;
-        siglen = rawlen;
-    }
-
-    if (ok) {
-        CK_RV rv = sign_emit(st, sig, siglen, pSignature, pulSignatureLen);
-        free(sig);
-        return rv;
-    }
-
-fail:
-    free(sig);
-    fprintf(stderr, "ksp11: signing failed\n");
-    ERR_print_errors_fp(stderr);
-    sign_reset(st);
-    return CKR_FUNCTION_FAILED;
+    return do_sign(st, pData, ulDataLen, pSignature, pulSignatureLen);
 }
 
 CK_RV C_SignUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPartLen) {
@@ -1128,13 +1300,6 @@ CK_RV C_SignUpdate(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pPart, CK_ULONG ulPar
     ksp_sign *st = &g_sign[s - g_sessions];
     if (!st->active) {
         return CKR_OPERATION_NOT_INITIALIZED;
-    }
-    DBG("C_SignUpdate len=%lu\n", (unsigned long)ulPartLen);
-    if (st->digest_mech) {
-        if (EVP_DigestSignUpdate(st->md_ctx, pPart, ulPartLen) <= 0) {
-            return CKR_FUNCTION_FAILED;
-        }
-        return CKR_OK;
     }
     if (st->buflen + ulPartLen > st->bufcap) {
         CK_ULONG cap = st->bufcap ? st->bufcap * 2 : 256;
@@ -1162,72 +1327,7 @@ CK_RV C_SignFinal(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pSignature, CK_ULONG_P
         return CKR_SESSION_HANDLE_INVALID;
     }
     ksp_sign *st = &g_sign[s - g_sessions];
-    if (!st->active) {
-        return CKR_OPERATION_NOT_INITIALIZED;
-    }
-    if (!pulSignatureLen) {
-        return CKR_ARGUMENTS_BAD;
-    }
-    DBG("C_SignFinal buflen=%lu\n", (unsigned long)st->buflen);
-
-    CK_BYTE *sig = NULL;
-    CK_ULONG siglen = 0;
-
-    if (st->digest_mech) {
-        if (EVP_DigestSignFinal(st->md_ctx, NULL, &siglen) <= 0) {
-            goto fail;
-        }
-        DBG("C_SignFinal size-call returned %lu\n", (unsigned long)siglen);
-        sig = malloc(siglen);
-        if (!sig) {
-            sign_reset(st);
-            return CKR_HOST_MEMORY;
-        }
-        if (EVP_DigestSignFinal(st->md_ctx, sig, &siglen) <= 0) {
-            goto fail;
-        }
-        DBG("C_SignFinal sig-call returned %lu, first bytes: %02x %02x %02x %02x %02x\n",
-            (unsigned long)siglen, sig[0], sig[1], sig[2], sig[3], sig[4]);
-    } else {
-        size_t len = 0;
-        if (EVP_PKEY_sign(st->raw_ctx, NULL, &len, st->buf, st->buflen) <= 0) {
-            goto fail;
-        }
-        sig = malloc(len);
-        if (!sig) {
-            sign_reset(st);
-            return CKR_HOST_MEMORY;
-        }
-        if (EVP_PKEY_sign(st->raw_ctx, sig, &len, st->buf, st->buflen) <= 0) {
-            goto fail;
-        }
-        siglen = len;
-    }
-
-    if (g_key_type == CKK_EC) {
-        unsigned char *raw = NULL;
-        size_t rawlen = 0;
-        if (!ecdsa_der_to_raw(sig, siglen, &raw, &rawlen)) {
-            free(sig);
-            goto fail;
-        }
-        free(sig);
-        sig = raw;
-        siglen = rawlen;
-    }
-
-    {
-        CK_RV rv = sign_emit(st, sig, siglen, pSignature, pulSignatureLen);
-        free(sig);
-        return rv;
-    }
-
-fail:
-    free(sig);
-    fprintf(stderr, "ksp11: signing failed\n");
-    ERR_print_errors_fp(stderr);
-    sign_reset(st);
-    return CKR_FUNCTION_FAILED;
+    return do_sign(st, st->buf, st->buflen, pSignature, pulSignatureLen);
 }
 
 CK_RV C_GenerateRandom(CK_SESSION_HANDLE hSession, CK_BYTE_PTR pRandomData, CK_ULONG ulRandomLen) {

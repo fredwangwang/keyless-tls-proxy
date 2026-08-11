@@ -215,6 +215,14 @@ func (c *Client) SignHash(ctx context.Context, thumbprint string, digest []byte,
 	if _, err := c.FindInstalled(ctx, tp); err != nil {
 		return nil, err
 	}
+	return c.SignHashDirect(ctx, tp, digest, hashAlg, padding)
+}
+
+// SignHashDirect signs a digest with the remote server without consulting the
+// local installation manifest. Used by the Linux bridge, which exposes every
+// certificate the server reports as having a private key.
+func (c *Client) SignHashDirect(ctx context.Context, thumbprint string, digest []byte, hashAlg certv1.HashAlgorithm, padding certv1.RSAPadding) ([]byte, error) {
+	tp := kspmanifest.NormalizeThumbprint(thumbprint)
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	resp, err := c.rpc.SignHash(ctx, &certv1.SignHashRequest{
@@ -227,6 +235,17 @@ func (c *Client) SignHash(ctx context.Context, thumbprint string, digest []byte,
 		return nil, err
 	}
 	return append([]byte(nil), resp.Signature...), nil
+}
+
+// AllKeys returns every remote certificate that has a private key, ignoring
+// the local installation manifest.
+func (c *Client) AllKeys(ctx context.Context) ([]KeyInfo, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if err := c.refreshRemoteListLocked(ctx); err != nil {
+		return nil, err
+	}
+	return c.cachedList, nil
 }
 
 func rsaPublicBlobFromDER(der []byte) ([]byte, error) {
