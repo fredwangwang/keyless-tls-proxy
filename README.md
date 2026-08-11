@@ -1,27 +1,47 @@
-# TPM Certificate gRPC Server
+# Keyless TLS Proxy
 
-A Windows gRPC service that lists certificates with private keys from the Current User `MY` store and signs digests using non-exportable keys (including TPM-backed keys via CNG/NCrypt). Communication is secured with mutual TLS (mTLS).
+A cross-platform gRPC service and client proxy architecture for **Windows** and **macOS** that lists certificates with private keys from system certificate stores (Windows `MY` store via CNG/NCrypt, macOS Keychain) and performs remote keyless signing of digests using non-exportable keys (including TPM-backed keys and hardware tokens). Communication between clients and servers is secured with mutual TLS (mTLS).
+
+## Key Features
+
+- **Cross-Platform Server (`cmd/cert-server`)**: Runs on both **macOS** (accessing macOS Keychain) and **Windows** (accessing Windows `MY` store / NCrypt / TPM).
+- **macOS Provider App & Extension (`mac-provider/`)**: Native macOS App (`MacTokenApp`) and CryptoTokenKit (CTK) SmartCard Token extension (`MacTokenExtension`) allowing macOS systems and applications to delegate cryptographic signing to a remote `cert-server`.
+- **Windows CNG KSP (`ksp/`)**: Custom Windows Key Storage Provider DLL that integrates with Windows CryptoAPI/CNG to delegate signing to a remote `cert-server`.
+- **UDP LAN Discovery**: Automatic server discovery over LAN via UDP broadcast on port 6666.
+- **mTLS Transport Security**: Full mutual TLS authentication for gRPC communication between clients/providers and the cert-server.
 
 ## Requirements
 
-- Windows (server must run on Windows)
-- Go 1.26+
-- `protoc` for regenerating protobuf code (bundled under `tools/protoc/` after first bootstrap, or install via `winget install Google.Protobuf`)
+- **Server Host**: Windows 10/11 / Windows Server OR macOS 12+
+- **macOS Provider App / Extension**: macOS 12+, Xcode / Xcode Command Line Tools, and `xcodegen` (`brew install xcodegen`)
+- **Windows CNG KSP**: Windows 10/11 (C++ build tools and CGO required to compile)
+- **Go**: 1.26+
+- **Protobuf**: `protoc` (bundled under `tools/protoc/` after bootstrap, or install via `brew install protobuf` / `winget install Google.Protobuf`)
 
-## Quick start
+## Quick Start
 
 ### 1. Generate mTLS transport certificates
 
-```powershell
+```bash
 go run ./cmd/gencerts
 ```
 
 This creates `certs/ca.crt`, `certs/server.crt`, `certs/server.key`, `certs/client.crt`, and `certs/client.key`.
 
-### 2. Start the server
+### 2. Start the certificate server
 
-Restart the server after code or proto changes (`go run` recompiles automatically; stop any previously running instance first).
+The server can run on **macOS** (reading from Keychain) or **Windows** (reading from `MY` store).
 
+**On macOS / Linux:**
+```bash
+go run ./cmd/cert-server \
+  -addr 127.0.0.1:50051 \
+  -ca certs/ca.crt \
+  -cert certs/server.crt \
+  -key certs/server.key
+```
+
+**On Windows (PowerShell):**
 ```powershell
 go run ./cmd/cert-server `
   -addr 127.0.0.1:50051 `
@@ -34,119 +54,80 @@ The server listens on localhost by default and requires a valid client certifica
 
 UDP broadcast discovery is enabled by default on port **6666** (`-discovery-addr :6666`). Clients on the same LAN can find the server without hard-coding its IP.
 
-For LAN clients, bind gRPC to a reachable interface:
-
-```powershell
-go run ./cmd/cert-server `
-  -addr 0.0.0.0:50051 `
-  -ca certs/ca.crt `
-  -cert certs/server.crt `
+To bind gRPC to a reachable network interface for LAN clients:
+```bash
+go run ./cmd/cert-server \
+  -addr 0.0.0.0:50051 \
+  -ca certs/ca.crt \
+  -cert certs/server.crt \
   -key certs/server.key
 ```
 
-Disable discovery with `-discovery=false`. Windows Firewall may require an inbound rule for UDP 6666.
+Disable discovery with `-discovery=false`. Windows Firewall or macOS Application Firewall may require allowing inbound UDP on port 6666 and TCP on 50051.
 
 **Discovery protocol:** send a UDP broadcast (or unicast) to port 6666:
-
 ```json
 {"op":"discover","service":"tpm-cert-server"}
 ```
 
-The server replies unicast with:
-
+The server replies with:
 ```json
 {"op":"announce","service":"tpm-cert-server","version":"1","hostname":"HOST","grpc_addr":"192.168.1.50:50051"}
 ```
 
-Use `grpc_addr` for mTLS gRPC connections. Discovery only advertises the endpoint; mTLS is still required for API access.
-
 Discover servers on the LAN:
-
-```powershell
+```bash
 go run ./cmd/run-discovery
 ```
 
-Optional flags: `-timeout 5s`, `-json`, `-probe 192.168.1.50:6666` (unicast to a specific host).
-
 ### 3. Run the example client
 
-```powershell
-go run ./cmd/example-client `
-  -addr 127.0.0.1:50051 `
-  -ca certs/ca.crt `
-  -cert certs/client.crt `
+```bash
+go run ./cmd/example-client \
+  -addr 127.0.0.1:50051 \
+  -ca certs/ca.crt \
+  -cert certs/client.crt \
   -key certs/client.key
 ```
 
 The client will:
-
-1. List all certificates in the Current User `MY` store that have accessible private keys
-2. Prompt you to choose a certificate by number
-3. Prompt for text to sign (or pass `-message "hello"` to skip the prompt)
+1. List all certificates on the server (from macOS Keychain or Windows `MY` store) that have accessible private keys
+2. Prompt you to choose a certificate by index
+3. Prompt for text to sign (or pass `-message "hello"`)
 4. Compute SHA-256 locally and call `SignHash` on the server
 5. Print the digest and signature
 
-## Project layout
+## macOS Provider (App & CryptoTokenKit Extension)
 
-| Path | Description |
-|------|-------------|
-| `proto/cert/v1/cert.proto` | gRPC API definition |
-| `gen/cert/v1/` | Generated protobuf/gRPC Go code |
-| `internal/certstore/` | Platform certificate store enumeration and signing (Windows NCrypt, macOS Keychain) |
-| `internal/server/` | gRPC service implementation and UDP discovery |
-| `internal/tlsutil/` | mTLS configuration helpers |
-| `cmd/cert-server/` | gRPC server entrypoint |
-| `cmd/example-client/` | Interactive example client |
-| `cmd/run-discovery/` | UDP LAN discovery client |
-| `cmd/gencerts/` | Dev mTLS CA/server/client certificate generator |
-| `cmd/ksp-register/` | Register/unregister the CNG KSP (admin) |
-| `cmd/ksp-install-cert/` | Install a remote cert into MY store and bind to the KSP |
-| `ksp/` | CNG Key Storage Provider DLL sources |
-| `internal/kspclient/` | gRPC client library for the KSP bridge |
-| `internal/ctkbridge/` | Go c-archive exports linked into the macOS CTK provider |
-| `mac-provider/` | macOS CryptoTokenKit (CTK) custom provider sources |
-| `scripts/gen-proto.ps1` | Regenerate protobuf code |
-| `scripts/build-ksp.ps1` | Build KSP DLL and helper tools |
-| `scripts/build-mac-provider.sh` | Build macOS CryptoTokenKit provider |
-| `ref/OpenSCToken/` | Reference — macOS CryptoTokenKit SmartCard provider |
-| `ref/BlackICE_Connect/` | Git submodule — upstream Gradiant CNG KSP reference |
+The macOS integration provides a native GUI application (`MacTokenApp`) and a CryptoTokenKit (CTK) SmartCard extension (`MacTokenExtension`). This allows macOS applications, system authentication, and TLS clients to use remote certificates hosted by `cert-server` as if a smart card were inserted locally.
 
-## gRPC API
+### Build and Install on macOS
 
-- **ListCertificates** — returns thumbprint, subject, issuer, validity, key type/size, TPM flag, provider name, and certificate DER
-- **SignHash** — signs a pre-computed digest (SHA-256, SHA-384, or SHA-512) with the certificate identified by thumbprint; RSA keys support `pkcs1` (default) or `pss` padding via `rsa_padding`
+1. Install prerequisites:
+   ```bash
+   brew install xcodegen
+   ```
 
-## TPM notes
+2. Build the app and extension bundle:
+   ```bash
+   ./scripts/build-app-bundle.sh
+   ```
 
-- Certificates using **Microsoft Platform Crypto Provider** are flagged as `is_tpm=true`
-- TPM keys are non-exportable; signing happens in-place via `NCryptSignHash`
-- RSA signing supports PKCS#1 v1.5 (default) and PSS (`-padding pss` on the example client)
-- TPM RSA keys are typically limited to 2048-bit
+3. Install to `/Applications` and register the extension:
+   ```bash
+   ./scripts/install-app-mac.sh
+   ```
+   This script builds `MacTokenApp.app`, copies it to `/Applications/MacTokenApp.app`, registers the CTK extension (`MacTokenExtension.appex`) using `pluginkit`, and initializes driver configuration.
 
-## Regenerating protobuf code
+### How it works on macOS
+- `MacTokenApp.app` provides a UI to configure connection parameters (server address, mTLS certificates, selected identities) and saves shared configuration for the extension.
+- `MacTokenExtension.appex` uses `internal/ctkbridge` (a Go `c-archive` bridge) to communicate with the remote `cert-server` via mTLS gRPC when macOS requests signature operations.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/gen-proto.ps1
-```
+## Windows CNG Key Storage Provider (KSP)
 
-Install plugins if needed:
+The KSP lets Windows applications on a **client machine** use TPM-backed or store keys hosted on a remote `cert-server` via NCrypt/CryptoAPI. Private keys never leave the server; the KSP forwards signing requests to `cert-server` over mTLS gRPC.
 
-```powershell
-go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-```
-
-## Security
-
-- mTLS transport certs (`cmd/gencerts`) are separate from Windows signing keys
-- The server defaults to `127.0.0.1` — bind to a broader interface only in trusted networks
-- `certs/` is gitignored; regenerate for each environment
-
-## CNG Key Storage Provider (remote client)
-
-The KSP lets Windows apps on a **client machine** use TPM-backed keys on the cert-server host via NCrypt/CryptoAPI. Private keys never leave the server; the KSP forwards signing to cert-server over mTLS gRPC.
-
-### Build
+### Build on Windows
 
 Requires Go 1.26+, Visual Studio C++ build tools, and CGO (`CGO_ENABLED=1`):
 
@@ -154,8 +135,7 @@ Requires Go 1.26+, Visual Studio C++ build tools, and CGO (`CGO_ENABLED=1`):
 powershell -ExecutionPolicy Bypass -File scripts/build-ksp.ps1
 ```
 
-Outputs under `build/`:
-
+Outputs in `build/`:
 - `fredprx_ksp.dll` — CNG Key Storage Provider
 - `ksp-register.exe` — register/unregister the provider (admin)
 - `ksp-install-cert.exe` — install and bind a remote certificate
@@ -163,42 +143,22 @@ Outputs under `build/`:
 ### Install workflow
 
 1. Copy `build\fredprx_ksp.dll` to `C:\Windows\System32`
-2. Register the provider (elevated):
+2. Register the provider (elevated Prompt):
+   ```powershell
+   build\ksp-register.exe -register
+   ```
+3. Install a remote certificate binding (uses mTLS certificates):
+   ```powershell
+   build\ksp-install-cert.exe `
+     -addr server.example.com:50051 `
+     -ca certs\ca.crt `
+     -cert certs\client.crt `
+     -key certs\client.key
+   ```
+   This writes `%ProgramData%\fredprx-ksp\config.json`, prompts to select a certificate, installs it into **Current User\MY**, and records the thumbprint in `%ProgramData%\fredprx-ksp\installed.json`.
+4. Windows applications can now acquire the private key via `CryptAcquireCertificatePrivateKey`; signing is delegated to `cert-server`.
 
-```powershell
-build\ksp-register.exe -register
-```
-
-3. Install a remote certificate binding (uses the same mTLS flags as the example client):
-
-```powershell
-build\ksp-install-cert.exe `
-  -addr server.example.com:50051 `
-  -ca certs\ca.crt `
-  -cert certs\client.crt `
-  -key certs\client.key
-```
-
-This writes `%ProgramData%\fredprx-ksp\config.json`, prompts you to pick a certificate, installs it into **Current User\MY**, and records the thumbprint in `%ProgramData%\fredprx-ksp\installed.json`.
-
-4. Windows apps can now acquire the private key via `CryptAcquireCertificatePrivateKey`; signing is delegated to cert-server.
-
-### KSP configuration
-
-Default config path: `%ProgramData%\fredprx-ksp\config.json`
-
-```json
-{
-  "addr": "server.example.com:50051",
-  "ca": "C:\\path\\ca.crt",
-  "cert": "C:\\path\\client.crt",
-  "key": "C:\\path\\client.key"
-}
-```
-
-Only thumbprints listed in `installed.json` are exposed as KSP keys.
-
-### Manage bindings
+### Manage KSP bindings
 
 ```powershell
 build\ksp-install-cert.exe -list
@@ -206,9 +166,58 @@ build\ksp-install-cert.exe -remove <THUMBPRINT>
 build\ksp-register.exe -unregister
 ```
 
-### KSP limitations (v1)
+## Project Layout
 
-- Windows x64 only
-- RSA keys only (PKCS#1 and PSS signing)
-- No local key creation or import
-- Keys are unusable until explicitly installed with `ksp-install-cert`
+| Path | Description |
+|------|-------------|
+| `proto/cert/v1/cert.proto` | gRPC API definition |
+| `gen/cert/v1/` | Generated protobuf/gRPC Go code |
+| `internal/certstore/` | Platform certificate store enumeration and signing (Windows NCrypt & macOS Keychain) |
+| `internal/server/` | gRPC service implementation and UDP discovery |
+| `internal/tlsutil/` | mTLS configuration helpers |
+| `internal/ctkbridge/` | Go c-archive exports linked into macOS CTK provider |
+| `internal/kspclient/` | gRPC client library for Windows KSP bridge |
+| `cmd/cert-server/` | Cross-platform gRPC server entrypoint (macOS & Windows) |
+| `cmd/example-client/` | Interactive example client |
+| `cmd/run-discovery/` | UDP LAN discovery client |
+| `cmd/gencerts/` | Dev mTLS CA/server/client certificate generator |
+| `cmd/local-sign-test-mac/` | macOS local Keychain signing test utility |
+| `cmd/local-sign-test-win/` | Windows local CNG signing test utility |
+| `cmd/ksp-register/` | Register/unregister the Windows CNG KSP (admin) |
+| `cmd/ksp-install-cert/` | Install a remote cert into Windows MY store and bind to KSP |
+| `ksp/` | Windows CNG Key Storage Provider DLL sources |
+| `mac-provider/` | macOS GUI App (`MacTokenApp`) and CryptoTokenKit (CTK) extension (`MacTokenExtension`) sources |
+| `scripts/build-app-bundle.sh` | Build macOS app and extension bundle via `xcodegen` and `xcodebuild` |
+| `scripts/install-app-mac.sh` | Install macOS app bundle to `/Applications` and register CTK plugin |
+| `scripts/gen-proto.ps1` | Regenerate protobuf code |
+| `scripts/build-ksp.ps1` | Build Windows KSP DLL and helper tools |
+
+## gRPC API
+
+- **ListCertificates** — returns thumbprint, subject, issuer, validity, key type/size, TPM flag, provider name, and certificate DER
+- **SignHash** — signs a pre-computed digest (SHA-256, SHA-384, or SHA-512) with the certificate identified by thumbprint; RSA keys support `pkcs1` (default) or `pss` padding via `rsa_padding`
+
+## TPM & Key Security Notes
+
+- On Windows, certificates using **Microsoft Platform Crypto Provider** are flagged as `is_tpm=true`. TPM keys are non-exportable and signed in-place via `NCryptSignHash`.
+- On macOS, certificates stored in system or user keychains with non-exportable private keys are accessed via Security framework APIs.
+- RSA signing supports PKCS#1 v1.5 (default) and PSS (`-padding pss` on the example client).
+
+## Regenerating Protobuf Code
+
+```bash
+# Windows
+powershell -ExecutionPolicy Bypass -File scripts/gen-proto.ps1
+
+# macOS / Linux (if protoc & plugins installed)
+protoc --go_out=. --go_opt=paths=source_relative \
+  --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+  proto/cert/v1/cert.proto
+```
+
+## Security
+
+- mTLS transport certs (`cmd/gencerts`) are separate from signing certificates.
+- The server defaults to `127.0.0.1` — bind to a broader interface only in trusted networks.
+- `certs/` is gitignored; regenerate for each environment.
+
