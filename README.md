@@ -99,6 +99,8 @@ The client will:
 
 ## macOS Provider (App & CryptoTokenKit Extension)
 
+![Keyless Proxy Configuration](./assets/macos-app-config.png)
+
 The macOS integration provides a native GUI application (`KeylessProxy`) and a CryptoTokenKit (CTK) SmartCard extension (`KeylessProxyExtension`). This allows macOS applications, system authentication, and TLS clients to use remote certificates hosted by `cert-server` as if a smart card were inserted locally.
 
 ### Build and Install on macOS
@@ -221,4 +223,9 @@ protoc --go_out=. --go_opt=paths=source_relative \
 - mTLS transport certs (`cmd/gencerts`) are separate from signing certificates.
 - The server defaults to `127.0.0.1` — bind to a broader interface only in trusted networks.
 - `certs/` is gitignored; regenerate for each environment.
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
 
