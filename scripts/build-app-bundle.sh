@@ -14,6 +14,7 @@ xcodebuild \
     -project "$ROOT_DIR/KeylessProxy.xcodeproj" \
     -scheme KeylessProxy \
     -configuration "$CONFIGURATION" \
+    -allowProvisioningUpdates \
     CONFIGURATION_BUILD_DIR="$ROOT_DIR/build" \
     build
 

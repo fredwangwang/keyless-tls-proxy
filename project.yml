@@ -36,6 +36,8 @@ targets:
       - path: mac-provider/Token.m
       - path: mac-provider/TokenSession.h
       - path: mac-provider/TokenSession.m
+      - path: mac-provider/KeychainHelper.h
+      - path: mac-provider/KeychainHelper.m
     dependencies:
       - sdk: Foundation.framework
       - sdk: Security.framework
@@ -123,6 +125,8 @@ targets:
     deploymentTarget: "26.0"
     sources:
       - path: mac-provider/AppMain.m
+      - path: mac-provider/KeychainHelper.h
+      - path: mac-provider/KeychainHelper.m
     dependencies:
       - target: KeylessProxyExtension
         embed: true

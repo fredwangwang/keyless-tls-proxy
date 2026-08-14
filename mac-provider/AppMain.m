@@ -1,6 +1,7 @@
 #import <Cocoa/Cocoa.h>
 #import <CryptoTokenKit/CryptoTokenKit.h>
 #import <Security/Security.h>
+#import "KeychainHelper.h"
 #include "libctkbridge.h"
 
 @interface NSObject (NSUndoManagerActions)
@@ -205,27 +206,86 @@ static NSString *resolveContentOrPath(NSString *input) {
     if (defaults) {
         if ([defaults stringForKey:@"serverAddr"]) dict[@"serverAddr"] = [defaults stringForKey:@"serverAddr"];
         if ([defaults stringForKey:@"ServerAddress"]) dict[@"ServerAddress"] = [defaults stringForKey:@"ServerAddress"];
-        if ([defaults stringForKey:@"caContent"]) dict[@"caContent"] = [defaults stringForKey:@"caContent"];
-        if ([defaults stringForKey:@"certContent"]) dict[@"certContent"] = [defaults stringForKey:@"certContent"];
-        if ([defaults stringForKey:@"keyContent"]) dict[@"keyContent"] = [defaults stringForKey:@"keyContent"];
+    }
+    
+    // Load CA, cert, and key from Keychain
+    NSString *ca = nil;
+    NSString *cert = nil;
+    NSString *key = nil;
+    NSError *kcErr = nil;
+    [KeychainHelper loadCACert:&ca clientCert:&cert clientKey:&key accessGroup:appGroupID error:&kcErr];
+    
+    // Fallback / migration from legacy NSUserDefaults if not yet in Keychain
+    BOOL migrated = NO;
+    if (ca.length == 0 && defaults) {
+        NSString *legacyCA = [defaults stringForKey:@"caContent"] ?: [defaults stringForKey:@"caPath"];
+        if (legacyCA.length > 0) {
+            ca = legacyCA;
+            migrated = YES;
+        }
+    }
+    if (cert.length == 0 && defaults) {
+        NSString *legacyCert = [defaults stringForKey:@"certContent"] ?: [defaults stringForKey:@"certPath"];
+        if (legacyCert.length > 0) {
+            cert = legacyCert;
+            migrated = YES;
+        }
+    }
+    if (key.length == 0 && defaults) {
+        NSString *legacyKey = [defaults stringForKey:@"keyContent"] ?: [defaults stringForKey:@"keyPath"];
+        if (legacyKey.length > 0) {
+            key = legacyKey;
+            migrated = YES;
+        }
+    }
+    
+    if (migrated) {
+        NSLog(@"AppMain: Migrating legacy credentials from NSUserDefaults to Keychain...");
+        NSError *saveErr = nil;
+        if ([KeychainHelper saveCACert:ca clientCert:cert clientKey:key accessGroup:appGroupID error:&saveErr]) {
+            NSLog(@"AppMain: Successfully migrated credentials to Keychain. Cleaning NSUserDefaults.");
+            [defaults removeObjectForKey:@"caContent"];
+            [defaults removeObjectForKey:@"certContent"];
+            [defaults removeObjectForKey:@"keyContent"];
+            [defaults removeObjectForKey:@"caPath"];
+            [defaults removeObjectForKey:@"certPath"];
+            [defaults removeObjectForKey:@"keyPath"];
+            [defaults synchronize];
+        } else {
+            NSLog(@"AppMain: Warning - Failed to migrate credentials to Keychain: %@", saveErr);
+        }
+    }
+    
+    if (ca.length > 0 && cert.length > 0 && key.length > 0) {
+        [KeychainHelper saveCACert:ca clientCert:cert clientKey:key accessGroup:appGroupID error:nil];
+        dict[@"caContent"] = ca;
+        dict[@"certContent"] = cert;
+        dict[@"keyContent"] = key;
     }
     
     return dict;
 }
 
-- (BOOL)saveSharedConfigToAppGroup:(NSDictionary *)settings error:(NSError **)error {
-    NSUserDefaults *defaults = [[NSUserDefaults alloc] initWithSuiteName:getAppGroupID()];
+- (BOOL)saveSharedConfigToKeychainAndAppGroupWithAddr:(NSString *)addr ca:(NSString *)ca cert:(NSString *)cert key:(NSString *)key error:(NSError **)error {
+    NSString *appGroupID = getAppGroupID();
+    
+    // Save non-sensitive server address to NSUserDefaults and remove any plaintext credentials
+    NSUserDefaults *defaults = [[NSUserDefaults alloc] initWithSuiteName:appGroupID];
     if (defaults) {
-        [settings enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
-            [defaults setObject:obj forKey:key];
-        }];
+        [defaults setObject:addr forKey:@"serverAddr"];
+        [defaults setObject:addr forKey:@"ServerAddress"];
+        [defaults setObject:[[NSDate date] description] forKey:@"LastUpdated"];
+        [defaults removeObjectForKey:@"caContent"];
+        [defaults removeObjectForKey:@"certContent"];
+        [defaults removeObjectForKey:@"keyContent"];
+        [defaults removeObjectForKey:@"caPath"];
+        [defaults removeObjectForKey:@"certPath"];
+        [defaults removeObjectForKey:@"keyPath"];
         [defaults synchronize];
-        return YES;
     }
-    if (error) {
-        *error = [NSError errorWithDomain:@"AppMainDomain" code:1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to open App Group NSUserDefaults"}];
-    }
-    return NO;
+    
+    // Save CA, client cert, and client key to Keychain
+    return [KeychainHelper saveCACert:ca clientCert:cert clientKey:key accessGroup:appGroupID error:error];
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
@@ -574,38 +634,26 @@ extern char *ctk_bridge_last_error(void);
         return;
     }
 
-    NSDictionary *configDict = @{
-        @"serverAddr": addr,
-        @"ServerAddress": addr,
-        @"caContent": ca,
-        @"certContent": cert,
-        @"keyContent": key,
-        @"caPath": ca,
-        @"certPath": cert,
-        @"keyPath": key,
-        @"LastUpdated": [[NSDate date] description]
-    };
-
     NSError *saveError = nil;
-    if (![self saveSharedConfigToAppGroup:configDict error:&saveError]) {
+    if (![self saveSharedConfigToKeychainAndAppGroupWithAddr:addr ca:ca cert:cert key:key error:&saveError]) {
         self.statusLabel.textColor = [NSColor systemRedColor];
-        self.statusLabel.stringValue = [NSString stringWithFormat:@"Save Failed: %@", saveError ? saveError.localizedDescription : @"Unknown error"];
+        self.statusLabel.stringValue = [NSString stringWithFormat:@"Save Failed: %@", saveError ? saveError.localizedDescription : @"Unknown error saving to Keychain"];
         return;
     }
 
     int res = ctk_bridge_init_opts((char *)addr.UTF8String, (char *)ca.UTF8String, (char *)cert.UTF8String, (char *)key.UTF8String);
     if (res == 0) {
         int count = ctk_bridge_installed_count();
-        NSLog(@"AppMain: config saved to App Group, %d remote certificate(s) discovered.", count);
+        NSLog(@"AppMain: CA, cert, and key saved to Keychain; %d remote certificate(s) discovered.", count);
         self.statusLabel.textColor = [NSColor systemGreenColor];
-        self.statusLabel.stringValue = [NSString stringWithFormat:@"Configuration saved to App Group and applied! Discovered %d remote certificate(s).", count];
+        self.statusLabel.stringValue = [NSString stringWithFormat:@"Configuration saved to Keychain and applied! Discovered %d remote certificate(s).", count];
         [self refreshIdentities:nil];
     } else {
         char *errStr = ctk_bridge_last_error();
         NSString *errMsg = (errStr && strlen(errStr) > 0) ? [NSString stringWithUTF8String:errStr] : [NSString stringWithFormat:@"error code %d", res];
         if (errStr) free(errStr);
         self.statusLabel.textColor = [NSColor systemRedColor];
-        self.statusLabel.stringValue = [NSString stringWithFormat:@"Saved preferences, but bridge initialization failed: %@", errMsg];
+        self.statusLabel.stringValue = [NSString stringWithFormat:@"Saved credentials to Keychain, but bridge initialization failed: %@", errMsg];
     }
 }
 

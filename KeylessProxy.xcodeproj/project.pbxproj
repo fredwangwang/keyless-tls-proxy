@@ -17,8 +17,10 @@
 		79F6587E2A35473B28BDE6CA /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0669D2D08CAB5BA508D7EC62 /* Security.framework */; };
 		916933B19302896B785C45F9 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0669D2D08CAB5BA508D7EC62 /* Security.framework */; };
 		9B59173CA78BACC53165B2DF /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 60FF9A9F6F1B0C3B187A1E22 /* Foundation.framework */; };
+		A07771078E34A42E61A7A0E1 /* KeychainHelper.m in Sources */ = {isa = PBXBuildFile; fileRef = E94D3C259AC69BD6A68FF370 /* KeychainHelper.m */; };
 		AD6FA5B250ADCDA243EFF16E /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = F70F56C307A148976EFE57F5 /* libresolv.tbd */; };
 		CB5A3A2DB792A3F1522BD110 /* KeylessProxyExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 59F0A93B6BBF41B3FCE991E2 /* KeylessProxyExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		FC4EE2C0D5FDA929C038F806 /* KeychainHelper.m in Sources */ = {isa = PBXBuildFile; fileRef = E94D3C259AC69BD6A68FF370 /* KeychainHelper.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -49,6 +51,7 @@
 		05CAF681C512D8F3BA67D93C /* Token.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Token.m; sourceTree = "<group>"; };
 		0669D2D08CAB5BA508D7EC62 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		099BDB78F0DE6E215E318B49 /* TokenSession.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TokenSession.m; sourceTree = "<group>"; };
+		0CE64E0D40894A06F77D200B /* KeychainHelper.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KeychainHelper.h; sourceTree = "<group>"; };
 		14CD8C849ACF53FD99B2AE10 /* Token.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Token.h; sourceTree = "<group>"; };
 		2E062506CAA258F2E3F00438 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		44EE525D737A69BE58C49FE4 /* TokenDriver.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TokenDriver.m; sourceTree = "<group>"; };
@@ -58,6 +61,7 @@
 		A2C04AAF3A0221C79C4EA220 /* CryptoTokenKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CryptoTokenKit.framework; path = System/Library/Frameworks/CryptoTokenKit.framework; sourceTree = SDKROOT; };
 		B6D23CBD58609AF53BDF47ED /* TokenSession.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TokenSession.h; sourceTree = "<group>"; };
 		DE1765DDF72ECC9B4DD0911D /* AppMain.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppMain.m; sourceTree = "<group>"; };
+		E94D3C259AC69BD6A68FF370 /* KeychainHelper.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = KeychainHelper.m; sourceTree = "<group>"; };
 		F70F56C307A148976EFE57F5 /* libresolv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libresolv.tbd; path = usr/lib/libresolv.tbd; sourceTree = SDKROOT; };
 		F9C4A2D1D6FF09888C93EB6B /* KeylessProxy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KeylessProxy.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -100,6 +104,8 @@
 			isa = PBXGroup;
 			children = (
 				DE1765DDF72ECC9B4DD0911D /* AppMain.m */,
+				0CE64E0D40894A06F77D200B /* KeychainHelper.h */,
+				E94D3C259AC69BD6A68FF370 /* KeychainHelper.m */,
 				14CD8C849ACF53FD99B2AE10 /* Token.h */,
 				05CAF681C512D8F3BA67D93C /* Token.m */,
 				5969D9EC3BA6DBF78BEC47B5 /* TokenDriver.h */,
@@ -250,6 +256,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A07771078E34A42E61A7A0E1 /* KeychainHelper.m in Sources */,
 				795B57FFA71601B519125B32 /* Token.m in Sources */,
 				5D60C02AC77CE1406C14B48B /* TokenDriver.m in Sources */,
 				1FED832D5833082820DAE0D8 /* TokenSession.m in Sources */,
@@ -261,6 +268,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7751806175F992331041194E /* AppMain.m in Sources */,
+				FC4EE2C0D5FDA929C038F806 /* KeychainHelper.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
