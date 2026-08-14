@@ -127,6 +127,7 @@ targets:
       - path: mac-provider/AppMain.m
       - path: mac-provider/KeychainHelper.h
       - path: mac-provider/KeychainHelper.m
+      - path: mac-provider/AppIcon.icns
     dependencies:
       - target: KeylessProxyExtension
         embed: true

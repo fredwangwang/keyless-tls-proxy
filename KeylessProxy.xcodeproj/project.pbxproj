@@ -20,6 +20,7 @@
 		A07771078E34A42E61A7A0E1 /* KeychainHelper.m in Sources */ = {isa = PBXBuildFile; fileRef = E94D3C259AC69BD6A68FF370 /* KeychainHelper.m */; };
 		AD6FA5B250ADCDA243EFF16E /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = F70F56C307A148976EFE57F5 /* libresolv.tbd */; };
 		CB5A3A2DB792A3F1522BD110 /* KeylessProxyExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 59F0A93B6BBF41B3FCE991E2 /* KeylessProxyExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		EFD464E5687E5FCEF28620CC /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = FE79E647BDE167380B18614A /* AppIcon.icns */; };
 		FC4EE2C0D5FDA929C038F806 /* KeychainHelper.m in Sources */ = {isa = PBXBuildFile; fileRef = E94D3C259AC69BD6A68FF370 /* KeychainHelper.m */; };
 /* End PBXBuildFile section */
 
@@ -64,6 +65,7 @@
 		E94D3C259AC69BD6A68FF370 /* KeychainHelper.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = KeychainHelper.m; sourceTree = "<group>"; };
 		F70F56C307A148976EFE57F5 /* libresolv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libresolv.tbd; path = usr/lib/libresolv.tbd; sourceTree = SDKROOT; };
 		F9C4A2D1D6FF09888C93EB6B /* KeylessProxy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KeylessProxy.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FE79E647BDE167380B18614A /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -103,6 +105,7 @@
 		7E51882CD8FF36778E32D228 /* mac-provider */ = {
 			isa = PBXGroup;
 			children = (
+				FE79E647BDE167380B18614A /* AppIcon.icns */,
 				DE1765DDF72ECC9B4DD0911D /* AppMain.m */,
 				0CE64E0D40894A06F77D200B /* KeychainHelper.h */,
 				E94D3C259AC69BD6A68FF370 /* KeychainHelper.m */,
@@ -164,6 +167,7 @@
 			buildConfigurationList = 0A55DE49E1903C8CD44FA2DD /* Build configuration list for PBXNativeTarget "KeylessProxy" */;
 			buildPhases = (
 				CFB79DB6A645FF3D4A92D9A2 /* Sources */,
+				15CDF228E1A165EF5E6BC6C3 /* Resources */,
 				AB30B2F18C0184F02CD23149 /* Frameworks */,
 				2B7A41C635CA50AAD0BF22FE /* Embed Foundation Extensions */,
 			);
@@ -217,6 +221,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		15CDF228E1A165EF5E6BC6C3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EFD464E5687E5FCEF28620CC /* AppIcon.icns in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
 		BA26DAE43356699C76EE30E8 /* Build Go C-Archive (libctkbridge.a) */ = {
