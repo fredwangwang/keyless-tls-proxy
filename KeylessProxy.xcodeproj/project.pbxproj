@@ -1,0 +1,570 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1FED832D5833082820DAE0D8 /* TokenSession.m in Sources */ = {isa = PBXBuildFile; fileRef = 099BDB78F0DE6E215E318B49 /* TokenSession.m */; };
+		2A4BE3F1F4E61480FF3A0283 /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = F70F56C307A148976EFE57F5 /* libresolv.tbd */; };
+		4D577EEF18B7B31DCA883B89 /* CryptoTokenKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A2C04AAF3A0221C79C4EA220 /* CryptoTokenKit.framework */; };
+		5D60C02AC77CE1406C14B48B /* TokenDriver.m in Sources */ = {isa = PBXBuildFile; fileRef = 44EE525D737A69BE58C49FE4 /* TokenDriver.m */; };
+		682B7BCBA06E979721272ACD /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2E062506CAA258F2E3F00438 /* Cocoa.framework */; };
+		7751806175F992331041194E /* AppMain.m in Sources */ = {isa = PBXBuildFile; fileRef = DE1765DDF72ECC9B4DD0911D /* AppMain.m */; };
+		795B57FFA71601B519125B32 /* Token.m in Sources */ = {isa = PBXBuildFile; fileRef = 05CAF681C512D8F3BA67D93C /* Token.m */; };
+		79F6587E2A35473B28BDE6CA /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0669D2D08CAB5BA508D7EC62 /* Security.framework */; };
+		916933B19302896B785C45F9 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0669D2D08CAB5BA508D7EC62 /* Security.framework */; };
+		9B59173CA78BACC53165B2DF /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 60FF9A9F6F1B0C3B187A1E22 /* Foundation.framework */; };
+		AD6FA5B250ADCDA243EFF16E /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = F70F56C307A148976EFE57F5 /* libresolv.tbd */; };
+		CB5A3A2DB792A3F1522BD110 /* KeylessProxyExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 59F0A93B6BBF41B3FCE991E2 /* KeylessProxyExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		85431B2055CC1624F462504F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A85FE7113698BC93E5E78CFF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4B7AFAC09C5E598A86463857;
+			remoteInfo = KeylessProxyExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		2B7A41C635CA50AAD0BF22FE /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				CB5A3A2DB792A3F1522BD110 /* KeylessProxyExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		05CAF681C512D8F3BA67D93C /* Token.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Token.m; sourceTree = "<group>"; };
+		0669D2D08CAB5BA508D7EC62 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		099BDB78F0DE6E215E318B49 /* TokenSession.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TokenSession.m; sourceTree = "<group>"; };
+		14CD8C849ACF53FD99B2AE10 /* Token.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Token.h; sourceTree = "<group>"; };
+		2E062506CAA258F2E3F00438 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		44EE525D737A69BE58C49FE4 /* TokenDriver.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TokenDriver.m; sourceTree = "<group>"; };
+		5969D9EC3BA6DBF78BEC47B5 /* TokenDriver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TokenDriver.h; sourceTree = "<group>"; };
+		59F0A93B6BBF41B3FCE991E2 /* KeylessProxyExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = KeylessProxyExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		60FF9A9F6F1B0C3B187A1E22 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		A2C04AAF3A0221C79C4EA220 /* CryptoTokenKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CryptoTokenKit.framework; path = System/Library/Frameworks/CryptoTokenKit.framework; sourceTree = SDKROOT; };
+		B6D23CBD58609AF53BDF47ED /* TokenSession.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TokenSession.h; sourceTree = "<group>"; };
+		DE1765DDF72ECC9B4DD0911D /* AppMain.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppMain.m; sourceTree = "<group>"; };
+		F70F56C307A148976EFE57F5 /* libresolv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libresolv.tbd; path = usr/lib/libresolv.tbd; sourceTree = SDKROOT; };
+		F9C4A2D1D6FF09888C93EB6B /* KeylessProxy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KeylessProxy.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		AB30B2F18C0184F02CD23149 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				682B7BCBA06E979721272ACD /* Cocoa.framework in Frameworks */,
+				79F6587E2A35473B28BDE6CA /* Security.framework in Frameworks */,
+				2A4BE3F1F4E61480FF3A0283 /* libresolv.tbd in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B45EB96127CEDC6F800FE75E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9B59173CA78BACC53165B2DF /* Foundation.framework in Frameworks */,
+				916933B19302896B785C45F9 /* Security.framework in Frameworks */,
+				4D577EEF18B7B31DCA883B89 /* CryptoTokenKit.framework in Frameworks */,
+				AD6FA5B250ADCDA243EFF16E /* libresolv.tbd in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		3081981A3AF112BE2323A9C9 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F9C4A2D1D6FF09888C93EB6B /* KeylessProxy.app */,
+				59F0A93B6BBF41B3FCE991E2 /* KeylessProxyExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7E51882CD8FF36778E32D228 /* mac-provider */ = {
+			isa = PBXGroup;
+			children = (
+				DE1765DDF72ECC9B4DD0911D /* AppMain.m */,
+				14CD8C849ACF53FD99B2AE10 /* Token.h */,
+				05CAF681C512D8F3BA67D93C /* Token.m */,
+				5969D9EC3BA6DBF78BEC47B5 /* TokenDriver.h */,
+				44EE525D737A69BE58C49FE4 /* TokenDriver.m */,
+				B6D23CBD58609AF53BDF47ED /* TokenSession.h */,
+				099BDB78F0DE6E215E318B49 /* TokenSession.m */,
+			);
+			path = "mac-provider";
+			sourceTree = "<group>";
+		};
+		89AF29004B3E5B390EFB61F5 = {
+			isa = PBXGroup;
+			children = (
+				7E51882CD8FF36778E32D228 /* mac-provider */,
+				A35EAFCB80330E81B71B4108 /* Frameworks */,
+				3081981A3AF112BE2323A9C9 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A35EAFCB80330E81B71B4108 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				2E062506CAA258F2E3F00438 /* Cocoa.framework */,
+				A2C04AAF3A0221C79C4EA220 /* CryptoTokenKit.framework */,
+				60FF9A9F6F1B0C3B187A1E22 /* Foundation.framework */,
+				F70F56C307A148976EFE57F5 /* libresolv.tbd */,
+				0669D2D08CAB5BA508D7EC62 /* Security.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4B7AFAC09C5E598A86463857 /* KeylessProxyExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E9089FC50AEEEF8B13FD85E3 /* Build configuration list for PBXNativeTarget "KeylessProxyExtension" */;
+			buildPhases = (
+				BA26DAE43356699C76EE30E8 /* Build Go C-Archive (libctkbridge.a) */,
+				BE604C44A5B145CF234CB84B /* Sources */,
+				B45EB96127CEDC6F800FE75E /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = KeylessProxyExtension;
+			packageProductDependencies = (
+			);
+			productName = KeylessProxyExtension;
+			productReference = 59F0A93B6BBF41B3FCE991E2 /* KeylessProxyExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		FBD89E2C8312F349A27DF265 /* KeylessProxy */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0A55DE49E1903C8CD44FA2DD /* Build configuration list for PBXNativeTarget "KeylessProxy" */;
+			buildPhases = (
+				CFB79DB6A645FF3D4A92D9A2 /* Sources */,
+				AB30B2F18C0184F02CD23149 /* Frameworks */,
+				2B7A41C635CA50AAD0BF22FE /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				36ED35D9EA3627487D821325 /* PBXTargetDependency */,
+			);
+			name = KeylessProxy;
+			packageProductDependencies = (
+			);
+			productName = KeylessProxy;
+			productReference = F9C4A2D1D6FF09888C93EB6B /* KeylessProxy.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A85FE7113698BC93E5E78CFF /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					4B7AFAC09C5E598A86463857 = {
+						DevelopmentTeam = 8Z93635RW6;
+						ProvisioningStyle = Automatic;
+					};
+					FBD89E2C8312F349A27DF265 = {
+						DevelopmentTeam = 8Z93635RW6;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 29024DB5FB18F636C8B6689A /* Build configuration list for PBXProject "KeylessProxy" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 89AF29004B3E5B390EFB61F5;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 3081981A3AF112BE2323A9C9 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4B7AFAC09C5E598A86463857 /* KeylessProxyExtension */,
+				FBD89E2C8312F349A27DF265 /* KeylessProxy */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		BA26DAE43356699C76EE30E8 /* Build Go C-Archive (libctkbridge.a) */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(PROJECT_DIR)/go.mod",
+				"$(PROJECT_DIR)/go.sum",
+				"$(PROJECT_DIR)/internal/ctkbridge/bridge.go",
+				"$(PROJECT_DIR)/internal/kspclient/client.go",
+				"$(PROJECT_DIR)/internal/kspclient/config.go",
+				"$(PROJECT_DIR)/internal/kspcommon/paths.go",
+				"$(PROJECT_DIR)/internal/kspmanifest/manifest.go",
+				"$(PROJECT_DIR)/internal/tlsutil/tls.go",
+				"$(PROJECT_DIR)/gen/cert/v1/cert.pb.go",
+				"$(PROJECT_DIR)/gen/cert/v1/cert_grpc.pb.go",
+			);
+			name = "Build Go C-Archive (libctkbridge.a)";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(PROJECT_DIR)/build/libctkbridge.a",
+				"$(PROJECT_DIR)/build/libctkbridge.h",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ -f \"$PROJECT_DIR/go.mod\" ]; then\n  cd \"$PROJECT_DIR\"\nfi\nexport PATH=\"/usr/local/bin:/opt/homebrew/bin:$PATH\"\nexport MACOSX_DEPLOYMENT_TARGET=\"${MACOSX_DEPLOYMENT_TARGET:-26.0}\"\nexport CGO_CFLAGS=\"-mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}\"\nexport CGO_LDFLAGS=\"-mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}\"\nmkdir -p build\nTARGET_ARCHS=\"${ARCHS:-$(uname -m)}\"\nrm -f build/libctkbridge_*.a build/libctkbridge_*.h\nBUILD_LIBS=()\nLAST_HEADER=\"\"\nfor ARCH in $TARGET_ARCHS; do\n    GO_ARCH=\"\"\n    case \"$ARCH\" in\n        arm64|arm64e) GO_ARCH=\"arm64\" ;;\n        x86_64|amd64) GO_ARCH=\"amd64\" ;;\n    esac\n    if [ -n \"$GO_ARCH\" ]; then\n        ARCH_LIB=\"build/libctkbridge_${GO_ARCH}.a\"\n        ARCH_HDR=\"build/libctkbridge_${GO_ARCH}.h\"\n        if [ ! -f \"$ARCH_LIB\" ]; then\n            GOOS=darwin GOARCH=\"$GO_ARCH\" CGO_ENABLED=1 go build -buildmode=c-archive -o \"$ARCH_LIB\" ./internal/ctkbridge\n        fi\n        BUILD_LIBS+=(\"$ARCH_LIB\")\n        LAST_HEADER=\"$ARCH_HDR\"\n    fi\ndone\nrm -f build/libctkbridge.a build/libctkbridge.h\nif [ -n \"$LAST_HEADER\" ] && [ -f \"$LAST_HEADER\" ]; then\n    cp \"$LAST_HEADER\" build/libctkbridge.h\nfi\nif [ ${#BUILD_LIBS[@]} -eq 1 ]; then\n    cp \"${BUILD_LIBS[0]}\" build/libctkbridge.a\nelif [ ${#BUILD_LIBS[@]} -gt 1 ]; then\n    lipo -create \"${BUILD_LIBS[@]}\" -output build/libctkbridge.a\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		BE604C44A5B145CF234CB84B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				795B57FFA71601B519125B32 /* Token.m in Sources */,
+				5D60C02AC77CE1406C14B48B /* TokenDriver.m in Sources */,
+				1FED832D5833082820DAE0D8 /* TokenSession.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CFB79DB6A645FF3D4A92D9A2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7751806175F992331041194E /* AppMain.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		36ED35D9EA3627487D821325 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4B7AFAC09C5E598A86463857 /* KeylessProxyExtension */;
+			targetProxy = 85431B2055CC1624F462504F /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		2F4DAC5299694931E724742F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APP_GROUP_ID = 8Z93635RW6.group.com.fredprx.keylessproxy.shareddata;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "mac-provider/app.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = 8Z93635RW6;
+				ENABLE_HARDENED_RUNTIME = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/build",
+					"$(PROJECT_DIR)/mac-provider",
+				);
+				INFOPLIST_FILE = "mac-provider/App-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/build";
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				OTHER_CODE_SIGN_FLAGS = "--team-identifier 8Z93635RW6";
+				OTHER_LDFLAGS = (
+					"$(PROJECT_DIR)/build/libctkbridge.a",
+					"-lpthread",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.fredprx.keylessproxy.app;
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+			};
+			name = Release;
+		};
+		5C40F3A30231AA8DB49A8542 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		86BF05B954F25E4E51EAE503 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APP_GROUP_ID = 8Z93635RW6.group.com.fredprx.keylessproxy.shareddata;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "mac-provider/app.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = 8Z93635RW6;
+				ENABLE_HARDENED_RUNTIME = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/build",
+					"$(PROJECT_DIR)/mac-provider",
+				);
+				INFOPLIST_FILE = "mac-provider/App-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/build";
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				OTHER_CODE_SIGN_FLAGS = "--team-identifier 8Z93635RW6";
+				OTHER_LDFLAGS = (
+					"$(PROJECT_DIR)/build/libctkbridge.a",
+					"-lpthread",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.fredprx.keylessproxy.app;
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+			};
+			name = Debug;
+		};
+		C32D2BAD33B0FFFB5E8B77B8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APP_GROUP_ID = 8Z93635RW6.group.com.fredprx.keylessproxy.shareddata;
+				CODE_SIGN_ENTITLEMENTS = "mac-provider/extension.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = 8Z93635RW6;
+				ENABLE_HARDENED_RUNTIME = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/build",
+					"$(PROJECT_DIR)/mac-provider",
+				);
+				INFOPLIST_FILE = "mac-provider/Extension-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/build";
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				OTHER_CODE_SIGN_FLAGS = "--team-identifier 8Z93635RW6";
+				OTHER_LDFLAGS = (
+					"$(PROJECT_DIR)/build/libctkbridge.a",
+					"-lpthread",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.fredprx.keylessproxy.app.extension;
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+			};
+			name = Debug;
+		};
+		C71050E02CA5646485F19C65 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		F439B37FBEDA3FFD9E139BB9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APP_GROUP_ID = 8Z93635RW6.group.com.fredprx.keylessproxy.shareddata;
+				CODE_SIGN_ENTITLEMENTS = "mac-provider/extension.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = 8Z93635RW6;
+				ENABLE_HARDENED_RUNTIME = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/build",
+					"$(PROJECT_DIR)/mac-provider",
+				);
+				INFOPLIST_FILE = "mac-provider/Extension-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/build";
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				OTHER_CODE_SIGN_FLAGS = "--team-identifier 8Z93635RW6";
+				OTHER_LDFLAGS = (
+					"$(PROJECT_DIR)/build/libctkbridge.a",
+					"-lpthread",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.fredprx.keylessproxy.app.extension;
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0A55DE49E1903C8CD44FA2DD /* Build configuration list for PBXNativeTarget "KeylessProxy" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				86BF05B954F25E4E51EAE503 /* Debug */,
+				2F4DAC5299694931E724742F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		29024DB5FB18F636C8B6689A /* Build configuration list for PBXProject "KeylessProxy" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5C40F3A30231AA8DB49A8542 /* Debug */,
+				C71050E02CA5646485F19C65 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		E9089FC50AEEEF8B13FD85E3 /* Build configuration list for PBXNativeTarget "KeylessProxyExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C32D2BAD33B0FFFB5E8B77B8 /* Debug */,
+				F439B37FBEDA3FFD9E139BB9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A85FE7113698BC93E5E78CFF /* Project object */;
+}

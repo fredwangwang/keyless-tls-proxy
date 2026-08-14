@@ -1,6 +1,6 @@
-name: MacTokenApp
+name: KeylessProxy
 options:
-  bundleIdPrefix: com.fredprx.mactoken
+  bundleIdPrefix: com.fredprx.keylessproxy
   deploymentTarget:
     macOS: "26.0"
   createIntermediateGroups: true
@@ -13,11 +13,11 @@ options:
       STRING_CATALOG_GENERATE_SYMBOLS: true
 
 schemes:
-  MacTokenApp:
+  KeylessProxy:
     build:
       targets:
-        MacTokenApp: all
-        MacTokenExtension: all
+        KeylessProxy: all
+        KeylessProxyExtension: all
     run:
       config: Debug
     archive:
@@ -25,7 +25,7 @@ schemes:
 
 
 targets:
-  MacTokenExtension:
+  KeylessProxyExtension:
     type: app-extension
     platform: macOS
     deploymentTarget: "26.0"
@@ -98,8 +98,8 @@ targets:
     settings:
       base:
         DEVELOPMENT_TEAM: 8Z93635RW6
-        APP_GROUP_ID: 8Z93635RW6.group.com.fredprx.mactoken.shareddata
-        PRODUCT_BUNDLE_IDENTIFIER: com.fredprx.mactoken.app.extension
+        APP_GROUP_ID: 8Z93635RW6.group.com.fredprx.keylessproxy.shareddata
+        PRODUCT_BUNDLE_IDENTIFIER: com.fredprx.keylessproxy.app.extension
         INFOPLIST_FILE: mac-provider/Extension-Info.plist
         CODE_SIGN_ENTITLEMENTS: mac-provider/extension.entitlements
         CODE_SIGN_STYLE: Automatic
@@ -117,14 +117,14 @@ targets:
         DEAD_CODE_STRIPPING: true
         STRING_CATALOG_GENERATE_SYMBOLS: true
 
-  MacTokenApp:
+  KeylessProxy:
     type: application
     platform: macOS
     deploymentTarget: "26.0"
     sources:
       - path: mac-provider/AppMain.m
     dependencies:
-      - target: MacTokenExtension
+      - target: KeylessProxyExtension
         embed: true
       - sdk: Cocoa.framework
       - sdk: Security.framework
@@ -132,8 +132,8 @@ targets:
     settings:
       base:
         DEVELOPMENT_TEAM: 8Z93635RW6
-        APP_GROUP_ID: 8Z93635RW6.group.com.fredprx.mactoken.shareddata
-        PRODUCT_BUNDLE_IDENTIFIER: com.fredprx.mactoken.app
+        APP_GROUP_ID: 8Z93635RW6.group.com.fredprx.keylessproxy.shareddata
+        PRODUCT_BUNDLE_IDENTIFIER: com.fredprx.keylessproxy.app
         INFOPLIST_FILE: mac-provider/App-Info.plist
         CODE_SIGN_ENTITLEMENTS: mac-provider/app.entitlements
         CODE_SIGN_STYLE: Automatic
@@ -150,4 +150,3 @@ targets:
         ENABLE_HARDENED_RUNTIME: true
         DEAD_CODE_STRIPPING: true
         STRING_CATALOG_GENERATE_SYMBOLS: true
-

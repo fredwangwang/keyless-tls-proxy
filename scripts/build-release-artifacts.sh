@@ -57,21 +57,21 @@ rm -f "$BUILD_DIR/windows-ksp.zip"
 zip -j "$BUILD_DIR/windows-ksp.zip" "$BUILD_DIR/fredprx_ksp.dll" "$BUILD_DIR/ksp-register.exe" "$BUILD_DIR/ksp-install-cert.exe"
 echo "Created: $BUILD_DIR/windows-ksp.zip"
 
-# 4. Build macOS App & CTK Extension Bundle (MacTokenApp.zip)
+# 4. Build macOS App & CTK Extension Bundle (KeylessProxy.zip)
 echo ""
-echo "=== 4. Building macOS MacTokenApp & Extension ==="
+echo "=== 4. Building macOS KeylessProxy & Extension ==="
 "$SCRIPT_DIR/build-app-bundle.sh" Release
 
-echo "Creating MacTokenApp.zip..."
-rm -f "$BUILD_DIR/MacTokenApp.zip"
-ditto -c -k --keepParent "$BUILD_DIR/MacTokenApp.app" "$BUILD_DIR/MacTokenApp.zip"
-echo "Created: $BUILD_DIR/MacTokenApp.zip"
+echo "Creating KeylessProxy.zip..."
+rm -f "$BUILD_DIR/KeylessProxy.zip"
+ditto -c -k --keepParent "$BUILD_DIR/KeylessProxy.app" "$BUILD_DIR/KeylessProxy.zip"
+echo "Created: $BUILD_DIR/KeylessProxy.zip"
 
 echo ""
 echo "=========================================="
 echo " Release Artifacts Summary"
 echo "=========================================="
-ls -lh "$BUILD_DIR/cert-server-mac" "$BUILD_DIR/cert-server-windows.exe" "$BUILD_DIR/windows-ksp.zip" "$BUILD_DIR/MacTokenApp.zip"
+ls -lh "$BUILD_DIR/cert-server-mac" "$BUILD_DIR/cert-server-windows.exe" "$BUILD_DIR/windows-ksp.zip" "$BUILD_DIR/KeylessProxy.zip"
 
 if [ -n "$TAG" ]; then
   echo ""
@@ -81,7 +81,7 @@ if [ -n "$TAG" ]; then
       "$BUILD_DIR/cert-server-windows.exe" \
       "$BUILD_DIR/cert-server-mac" \
       "$BUILD_DIR/windows-ksp.zip" \
-      "$BUILD_DIR/MacTokenApp.zip" \
+      "$BUILD_DIR/KeylessProxy.zip" \
       --title "$TAG - Keyless TLS Proxy Release" \
       --notes "Keyless TLS Proxy release $TAG" \
       --draft=false || \
@@ -89,7 +89,7 @@ if [ -n "$TAG" ]; then
       "$BUILD_DIR/cert-server-windows.exe" \
       "$BUILD_DIR/cert-server-mac" \
       "$BUILD_DIR/windows-ksp.zip" \
-      "$BUILD_DIR/MacTokenApp.zip" \
+      "$BUILD_DIR/KeylessProxy.zip" \
       --clobber
   else
     echo "Warning: 'gh' CLI not found. Skipping release upload."

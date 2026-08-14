@@ -113,7 +113,7 @@ static void setupMainMenu(void) {
     NSMenuItem *appMenuItem = [[NSMenuItem alloc] init];
     [mainMenu addItem:appMenuItem];
     NSMenu *appMenu = [[NSMenu alloc] init];
-    NSMenuItem *quitItem = [[NSMenuItem alloc] initWithTitle:@"Quit TPM Cert Proxy"
+    NSMenuItem *quitItem = [[NSMenuItem alloc] initWithTitle:@"Quit Keyless Proxy"
                                                       action:@selector(terminate:)
                                                keyEquivalent:@"q"];
     [appMenu addItem:quitItem];
@@ -234,7 +234,7 @@ static NSString *resolveContentOrPath(NSString *input) {
     NSRect frame = NSMakeRect(100, 100, 880, 780);
     NSUInteger style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable;
     self.window = [[NSWindow alloc] initWithContentRect:frame styleMask:style backing:NSBackingStoreBuffered defer:NO];
-    [self.window setTitle:@"TPM Cert Proxy - MacToken Provider Configuration"];
+    [self.window setTitle:@"Keyless Proxy Configuration"];
 
     NSView *contentView = [self.window contentView];
 
@@ -245,7 +245,7 @@ static NSString *resolveContentOrPath(NSString *input) {
     [self.headerLabel setDrawsBackground:NO];
     [self.headerLabel setAlignment:NSTextAlignmentLeft];
     [self.headerLabel setFont:[NSFont systemFontOfSize:16 weight:NSFontWeightBold]];
-    [self.headerLabel setStringValue:@"MacToken CryptoTokenKit Provider Configuration"];
+    [self.headerLabel setStringValue:@"Keyless Proxy Configuration"];
     [contentView addSubview:self.headerLabel];
 
     // Row 1: Server Address
@@ -464,7 +464,7 @@ static NSString *resolveContentOrPath(NSString *input) {
         [self.statusLabel setTextColor:[NSColor systemOrangeColor]];
     }
 
-    NSString *classID = @"com.fredprx.mactoken.app.extension";
+    NSString *classID = @"com.fredprx.keylessproxy.app.extension";
     NSDictionary<NSString *, TKTokenDriverConfiguration *> *configs = [TKTokenDriverConfiguration driverConfigurations];
     TKTokenDriverConfiguration *driverConfig = configs[classID];
     if (driverConfig) {

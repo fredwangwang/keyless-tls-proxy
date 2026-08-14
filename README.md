@@ -5,7 +5,7 @@ A cross-platform gRPC service and client proxy architecture for **Windows** and 
 ## Key Features
 
 - **Cross-Platform Server (`cmd/cert-server`)**: Runs on both **macOS** (accessing macOS Keychain) and **Windows** (accessing Windows `MY` store / NCrypt / TPM).
-- **macOS Provider App & Extension (`mac-provider/`)**: Native macOS App (`MacTokenApp`) and CryptoTokenKit (CTK) SmartCard Token extension (`MacTokenExtension`) allowing macOS systems and applications to delegate cryptographic signing to a remote `cert-server`.
+- **macOS Provider App & Extension (`mac-provider/`)**: Native macOS App (`KeylessProxy`) and CryptoTokenKit (CTK) SmartCard Token extension (`KeylessProxyExtension`) allowing macOS systems and applications to delegate cryptographic signing to a remote `cert-server`.
 - **Windows CNG KSP (`ksp/`)**: Custom Windows Key Storage Provider DLL that integrates with Windows CryptoAPI/CNG to delegate signing to a remote `cert-server`.
 - **UDP LAN Discovery**: Automatic server discovery over LAN via UDP broadcast on port 6666.
 - **mTLS Transport Security**: Full mutual TLS authentication for gRPC communication between clients/providers and the cert-server.
@@ -99,7 +99,7 @@ The client will:
 
 ## macOS Provider (App & CryptoTokenKit Extension)
 
-The macOS integration provides a native GUI application (`MacTokenApp`) and a CryptoTokenKit (CTK) SmartCard extension (`MacTokenExtension`). This allows macOS applications, system authentication, and TLS clients to use remote certificates hosted by `cert-server` as if a smart card were inserted locally.
+The macOS integration provides a native GUI application (`KeylessProxy`) and a CryptoTokenKit (CTK) SmartCard extension (`KeylessProxyExtension`). This allows macOS applications, system authentication, and TLS clients to use remote certificates hosted by `cert-server` as if a smart card were inserted locally.
 
 ### Build and Install on macOS
 
@@ -117,11 +117,11 @@ The macOS integration provides a native GUI application (`MacTokenApp`) and a Cr
    ```bash
    ./scripts/install-app-mac.sh
    ```
-   This script builds `MacTokenApp.app`, copies it to `/Applications/MacTokenApp.app`, registers the CTK extension (`MacTokenExtension.appex`) using `pluginkit`, and initializes driver configuration.
+   This script builds `KeylessProxy.app`, copies it to `/Applications/KeylessProxy.app`, registers the CTK extension (`KeylessProxyExtension.appex`) using `pluginkit`, and initializes driver configuration.
 
 ### How it works on macOS
-- `MacTokenApp.app` provides a UI to configure connection parameters (server address, mTLS certificates, selected identities) and saves shared configuration for the extension.
-- `MacTokenExtension.appex` uses `internal/ctkbridge` (a Go `c-archive` bridge) to communicate with the remote `cert-server` via mTLS gRPC when macOS requests signature operations.
+- `KeylessProxy.app` provides a UI to configure connection parameters (server address, mTLS certificates, selected identities) and saves shared configuration for the extension.
+- `KeylessProxyExtension.appex` uses `internal/ctkbridge` (a Go `c-archive` bridge) to communicate with the remote `cert-server` via mTLS gRPC when macOS requests signature operations.
 
 ## Windows CNG Key Storage Provider (KSP)
 
@@ -186,7 +186,7 @@ build\ksp-register.exe -unregister
 | `cmd/ksp-register/` | Register/unregister the Windows CNG KSP (admin) |
 | `cmd/ksp-install-cert/` | Install a remote cert into Windows MY store and bind to KSP |
 | `ksp/` | Windows CNG Key Storage Provider DLL sources |
-| `mac-provider/` | macOS GUI App (`MacTokenApp`) and CryptoTokenKit (CTK) extension (`MacTokenExtension`) sources |
+| `mac-provider/` | macOS GUI App (`KeylessProxy`) and CryptoTokenKit (CTK) extension (`KeylessProxyExtension`) sources |
 | `scripts/build-app-bundle.sh` | Build macOS app and extension bundle via `xcodegen` and `xcodebuild` |
 | `scripts/install-app-mac.sh` | Install macOS app bundle to `/Applications` and register CTK plugin |
 | `scripts/build-release-artifacts.sh` | Build all release binaries/zips and optionally publish to GitHub |

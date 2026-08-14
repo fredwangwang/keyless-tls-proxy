@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "C15C845BD95A7D579C4EB36C"
-               BuildableName = "MacTokenApp.app"
-               BlueprintName = "MacTokenApp"
-               ReferencedContainer = "container:MacTokenApp.xcodeproj">
+               BlueprintIdentifier = "FBD89E2C8312F349A27DF265"
+               BuildableName = "KeylessProxy.app"
+               BlueprintName = "KeylessProxy"
+               ReferencedContainer = "container:KeylessProxy.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -29,10 +29,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "51E73D6D056198BAAC390EC7"
-               BuildableName = "MacTokenExtension.appex"
-               BlueprintName = "MacTokenExtension"
-               ReferencedContainer = "container:MacTokenApp.xcodeproj">
+               BlueprintIdentifier = "4B7AFAC09C5E598A86463857"
+               BuildableName = "KeylessProxyExtension.appex"
+               BlueprintName = "KeylessProxyExtension"
+               ReferencedContainer = "container:KeylessProxy.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -46,10 +46,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "C15C845BD95A7D579C4EB36C"
-            BuildableName = "MacTokenApp.app"
-            BlueprintName = "MacTokenApp"
-            ReferencedContainer = "container:MacTokenApp.xcodeproj">
+            BlueprintIdentifier = "FBD89E2C8312F349A27DF265"
+            BuildableName = "KeylessProxy.app"
+            BlueprintName = "KeylessProxy"
+            ReferencedContainer = "container:KeylessProxy.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -69,10 +69,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "C15C845BD95A7D579C4EB36C"
-            BuildableName = "MacTokenApp.app"
-            BlueprintName = "MacTokenApp"
-            ReferencedContainer = "container:MacTokenApp.xcodeproj">
+            BlueprintIdentifier = "FBD89E2C8312F349A27DF265"
+            BuildableName = "KeylessProxy.app"
+            BlueprintName = "KeylessProxy"
+            ReferencedContainer = "container:KeylessProxy.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
@@ -88,10 +88,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "C15C845BD95A7D579C4EB36C"
-            BuildableName = "MacTokenApp.app"
-            BlueprintName = "MacTokenApp"
-            ReferencedContainer = "container:MacTokenApp.xcodeproj">
+            BlueprintIdentifier = "FBD89E2C8312F349A27DF265"
+            BuildableName = "KeylessProxy.app"
+            BlueprintName = "KeylessProxy"
+            ReferencedContainer = "container:KeylessProxy.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
