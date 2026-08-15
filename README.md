@@ -142,14 +142,57 @@ Outputs in `build/`:
 - `ksp-register.exe` — register/unregister the provider (admin)
 - `ksp-install-cert.exe` — install and bind a remote certificate
 
-### Install workflow
+### Windows Installer (Recommended)
 
-1. Copy `build\fredprx_ksp.dll` to `C:\Windows\System32`
-2. Register the provider (elevated Prompt):
+The easiest way to install Fred Proxy KSP and the graphical Certificate Manager is using the Windows Installer package.
+
+#### 1. Build the Installer
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/build-windows-installer.ps1
+```
+*(Or run `powershell -ExecutionPolicy Bypass -File scripts/build-ksp.ps1 -Installer`)*
+
+This produces `build/FredProxyKSP-Setup.exe`.
+
+#### 2. Install
+
+Run `FredProxyKSP-Setup.exe` (requires Administrator elevation). The installer:
+1. Installs `fredprx_ksp.dll` into `C:\Windows\System32\` and registers **Fred Proxy Key Storage Provider** with Windows CNG.
+2. Installs **Fred Proxy Certificate Manager** (`ksp-install-ui.exe`), `ksp-register.exe`, and `ksp-install-cert.exe` into `C:\Program Files\Fred Proxy KSP\`.
+3. Creates Start Menu and optional Desktop shortcuts.
+4. Supports unattended/silent deployment via `/VERYSILENT /NORESTART`.
+
+#### 3. Manage Certificates (GUI)
+
+Launch **Fred Proxy Certificate Manager** from the Start Menu or run `ksp-install-ui.exe`:
+- Auto-discovers `cert-server` instances on your LAN.
+- Configures server connection and mTLS credentials (`ca.crt`, `client.crt`, `client.key`).
+- Browses remote certificates and installs them into **Current User\MY** with one click.
+- Manages and uninstalls existing certificate bindings.
+
+#### 4. Uninstall
+
+Uninstalling through Windows **Settings > Apps > Installed apps** (or `unins000.exe`):
+1. Automatically unregisters the provider from Windows CNG.
+2. Removes `C:\Windows\System32\fredprx_ksp.dll` and application files.
+
+---
+
+### Manual CLI Workflow
+
+If you prefer building and registering manually without the installer:
+
+1. Build binaries:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts/build-ksp.ps1
+   ```
+2. Copy `build\fredprx_ksp.dll` to `C:\Windows\System32`
+3. Register the provider (elevated PowerShell):
    ```powershell
    build\ksp-register.exe -register
    ```
-3. Install a remote certificate binding (uses mTLS certificates):
+4. Install a remote certificate binding (uses mTLS certificates):
    ```powershell
    build\ksp-install-cert.exe `
      -addr server.example.com:50051 `
@@ -158,9 +201,9 @@ Outputs in `build/`:
      -key certs\client.key
    ```
    This writes `%ProgramData%\fredprx-ksp\config.json`, prompts to select a certificate, installs it into **Current User\MY**, and records the thumbprint in `%ProgramData%\fredprx-ksp\installed.json`.
-4. Windows applications can now acquire the private key via `CryptAcquireCertificatePrivateKey`; signing is delegated to `cert-server`.
+5. Windows applications can now acquire the private key via `CryptAcquireCertificatePrivateKey`; signing is delegated to `cert-server`.
 
-### Manage KSP bindings
+### Manage KSP bindings via CLI
 
 ```powershell
 build\ksp-install-cert.exe -list

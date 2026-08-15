@@ -27,6 +27,10 @@ const (
 var winMyStore = stringToUTF16Ptr("MY")
 
 func ListCertificates() ([]CertificateInfo, error) {
+	if CertDir() != "" {
+		return listFromFileStore(), nil
+	}
+
 	store, err := openMyStore()
 	if err != nil {
 		return nil, err
@@ -58,6 +62,10 @@ func ListCertificates() ([]CertificateInfo, error) {
 }
 
 func SignHash(thumbprint string, digest []byte, hash HashAlgorithm, padding RSAPadding) (*SignResult, error) {
+	if CertDir() != "" {
+		return signWithFileStore(thumbprint, digest, hash, padding)
+	}
+
 	cryptoHash, err := hash.CryptoHash()
 	if err != nil {
 		return nil, err

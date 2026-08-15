@@ -90,27 +90,38 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+func isIgnorableNotFound(st uint32) bool {
+	// STATUS_SUCCESS (0), STATUS_OBJECT_NAME_NOT_FOUND (0xC0000034), STATUS_NOT_FOUND (0xC0000225)
+	return st == 0 || st == 0xC0000034 || st == 0xC0000225
+}
+
 func Register() error {
-	if st := C.tpmcertRegisterProvider(); st != 0 {
-		return fmt.Errorf("BCryptRegisterProvider: NTSTATUS 0x%08X", uint32(st))
+	// Unregister first if previously registered, ignoring not found errors
+	_ = Unregister()
+
+	if st := uint32(C.tpmcertRegisterProvider()); st != 0 && st != 0xC0000035 {
+		return fmt.Errorf("BCryptRegisterProvider: NTSTATUS 0x%08X", st)
 	}
-	if st := C.tpmcertAddContextFunction(); st != 0 {
-		return fmt.Errorf("BCryptAddContextFunction: NTSTATUS 0x%08X", uint32(st))
+	if st := uint32(C.tpmcertAddContextFunction()); st != 0 && st != 0xC0000035 {
+		return fmt.Errorf("BCryptAddContextFunction: NTSTATUS 0x%08X", st)
 	}
-	if st := C.tpmcertAddContextFunctionProvider(); st != 0 {
-		return fmt.Errorf("BCryptAddContextFunctionProvider: NTSTATUS 0x%08X", uint32(st))
+	if st := uint32(C.tpmcertAddContextFunctionProvider()); st != 0 && st != 0xC0000035 {
+		return fmt.Errorf("BCryptAddContextFunctionProvider: NTSTATUS 0x%08X", st)
 	}
 	return nil
 }
 
 func Unregister() error {
-	if st := C.tpmcertRemoveContextFunctionProvider(); st != 0 {
-		return fmt.Errorf("BCryptRemoveContextFunctionProvider: NTSTATUS 0x%08X", uint32(st))
+	var lastErr error
+	if st := uint32(C.tpmcertRemoveContextFunctionProvider()); !isIgnorableNotFound(st) {
+		lastErr = fmt.Errorf("BCryptRemoveContextFunctionProvider: NTSTATUS 0x%08X", st)
 	}
-	if st := C.tpmcertUnregisterProvider(); st != 0 {
-		return fmt.Errorf("BCryptUnregisterProvider: NTSTATUS 0x%08X", uint32(st))
+	if st := uint32(C.tpmcertUnregisterProvider()); !isIgnorableNotFound(st) {
+		if lastErr == nil {
+			lastErr = fmt.Errorf("BCryptUnregisterProvider: NTSTATUS 0x%08X", st)
+		}
 	}
-	return nil
+	return lastErr
 }
 
 func EnumProviders() ([]string, error) {

@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fred Proxy KSP Certificate Manager</title>
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">
+          <img src="icon.png" alt="Fred Proxy KSP Logo" class="brand-img">
+        </div>
+        <div class="brand-text">
+          <h2>Fred Proxy KSP</h2>
+          <span>Certificate Manager</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="tab-connect">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="2"></circle>
+            <path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"></path>
+          </svg>
+          <span>Discover & Connect</span>
+        </button>
+
+        <button class="nav-item" data-tab="tab-remote">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
+          </svg>
+          <span>Remote Certificates</span>
+          <span class="badge" id="remote-count-badge">0</span>
+        </button>
+
+        <button class="nav-item" data-tab="tab-installed">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            <polyline points="9 12 11 14 15 10"></polyline>
+          </svg>
+          <span>Installed Local</span>
+          <span class="badge" id="installed-count-badge">0</span>
+        </button>
+
+        <button class="nav-item" data-tab="tab-diagnostics">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <span>Diagnostics</span>
+        </button>
+
+        <div class="nav-divider"></div>
+
+        <button class="nav-item nav-action-btn" id="nav-btn-test-sign" title="Open Test Sign Panel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
+          <span>Test Sign</span>
+          <span class="badge badge-accent">CNG</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="status-indicator">
+          <span class="status-dot" id="conn-dot"></span>
+          <span class="status-text" id="conn-text">Disconnected</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Top Navigation / Header Bar -->
+      <header class="top-header">
+        <div class="header-title">
+          <h1 id="page-title">Discover & Connect</h1>
+          <p id="page-subtitle">Configure server connection, network discovery, and mTLS credentials.</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-secondary" id="btn-header-test-sign" title="Open Test Sign Side Panel">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            </svg>
+            <span>Test Sign</span>
+          </button>
+          <button class="btn btn-secondary" id="btn-global-refresh" title="Refresh Current View">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-spin-target">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            <span>Refresh</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- TAB 1: Discover & Connect -->
+      <section class="tab-pane active" id="tab-connect">
+        <div class="grid-2col">
+          <!-- Server Configuration Card -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-icon">⚡</span>
+                <h3>Server Connection</h3>
+              </div>
+              <span class="chip chip-info" id="chip-server-status">Not Checked</span>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label for="input-addr">Server Address (Host/IP:Port)</label>
+                <div class="input-with-action">
+                  <input type="text" id="input-addr" placeholder="192.168.1.50:50051 or tpm-host:50051" />
+                  <button class="btn btn-primary" id="btn-test-conn">
+                    <span>Test & Connect</span>
+                  </button>
+                </div>
+                <small class="form-hint">Default port is 50051 if omitted.</small>
+              </div>
+
+              <div id="test-result-box" class="message-box hidden"></div>
+            </div>
+          </div>
+
+          <!-- Network Auto-Discovery Card -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-icon">📡</span>
+                <h3>Local Network Discovery</h3>
+              </div>
+              <button class="btn btn-sm btn-secondary" id="btn-scan-network">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="2"></circle>
+                  <path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49"></path>
+                </svg>
+                <span id="scan-btn-label">Scan (UDP)</span>
+              </button>
+            </div>
+            <div class="card-body">
+              <p class="section-desc">Broadcasts a UDP discovery query to locate running <code>tpm-cert-server</code> instances.</p>
+              
+              <div id="discovery-loading" class="discovery-scanner hidden">
+                <div class="radar-pulse"></div>
+                <span>Scanning local subnets for TPM proxy servers...</span>
+              </div>
+
+              <div id="discovery-list" class="discovered-servers-list">
+                <div class="empty-state-sm">
+                  <span>No servers scanned yet. Click "Scan (UDP)" to discover.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- mTLS Configuration Card -->
+        <div class="card mt-4">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="card-icon">🔐</span>
+              <h3>mTLS Authentication & Config File</h3>
+            </div>
+            <button class="btn btn-primary" id="btn-save-config">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+              <span>Save Config</span>
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="input-ca">CA Certificate</label>
+                <div class="input-with-action">
+                  <input type="text" id="input-ca" placeholder="certs/ca.crt" />
+                  <button class="btn btn-secondary btn-browse" data-target="input-ca" data-filter="Certificate (*.crt;*.cer;*.pem)|*.crt;*.cer;*.pem">Browse...</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="input-cert">Client TLS Certificate</label>
+                <div class="input-with-action">
+                  <input type="text" id="input-cert" placeholder="certs/client.crt" />
+                  <button class="btn btn-secondary btn-browse" data-target="input-cert" data-filter="Certificate (*.crt;*.cer;*.pem)|*.crt;*.cer;*.pem">Browse...</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="input-key">Client TLS Private Key</label>
+                <div class="input-with-action">
+                  <input type="text" id="input-key" placeholder="certs/client.key" />
+                  <button class="btn btn-secondary btn-browse" data-target="input-key" data-filter="Private Key (*.key;*.pem)|*.key;*.pem">Browse...</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="input-config-path">Config Path (Destination)</label>
+                <input type="text" id="input-config-path" readonly />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: Remote Certificates -->
+      <section class="tab-pane" id="tab-remote">
+        <div class="filter-bar">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="input-search-remote" placeholder="Filter by subject, thumbprint, algorithm..." />
+          </div>
+          <div class="filter-stats">
+            <span id="remote-stats-text">0 certificates found</span>
+            <button class="btn btn-primary btn-sm" id="btn-fetch-remote">
+              <span>Fetch Remote List</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="remote-certs-container" class="cert-cards-grid">
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <h3>No Remote Certificates Loaded</h3>
+            <p>Connect to a server and fetch available certificates.</p>
+            <button class="btn btn-secondary mt-3" id="btn-empty-fetch">Fetch From Server</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: Installed Certificates -->
+      <section class="tab-pane" id="tab-installed">
+        <div class="filter-bar">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="input-search-installed" placeholder="Filter installed certificates..." />
+          </div>
+          <div class="filter-stats">
+            <span id="installed-stats-text">0 installed bindings</span>
+            <button class="btn btn-secondary btn-sm" id="btn-reload-installed">
+              <span>Reload Manifest</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="installed-certs-container" class="installed-list-container">
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+            <h3>No Certificates Installed</h3>
+            <p>No certificate bindings found in <code>installed.json</code>.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: Diagnostics -->
+      <section class="tab-pane" id="tab-diagnostics">
+        <div class="grid-2col">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-icon">🛠️</span>
+                <h3>KSP Provider Information</h3>
+              </div>
+            </div>
+            <div class="card-body">
+              <table class="diag-table">
+                <tr>
+                  <td><strong>Provider Name:</strong></td>
+                  <td><code id="diag-provider">Fred Proxy Key Storage Provider</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Target Store:</strong></td>
+                  <td><code>CurrentUser\MY (Personal)</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Data Directory:</strong></td>
+                  <td><code id="diag-datadir">C:\ProgramData\fredprx-ksp</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Config File:</strong></td>
+                  <td><code id="diag-configfile">C:\ProgramData\fredprx-ksp\config.json</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Manifest File:</strong></td>
+                  <td><code id="diag-manifestfile">C:\ProgramData\fredprx-ksp\installed.json</code></td>
+                </tr>
+                <tr>
+                  <td><strong>Active Bindings:</strong></td>
+                  <td><span class="chip chip-accent" id="diag-keycount">0</span></td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-icon">📖</span>
+                <h3>About Keyless TLS Proxy KSP</h3>
+              </div>
+            </div>
+            <div class="card-body">
+              <p class="section-desc">
+                This utility installs remote certificates into the Windows Certificate Store (<code>MY</code>) and binds their private key operations to the <strong>Fred Proxy Key Storage Provider (KSP)</strong> via CNG.
+              </p>
+              <div class="info-alert mt-3">
+                <strong>How it works:</strong> When a Windows application (IIS, Chrome, Edge, Schannel) requests a private key operation (signing / TLS handshake), CNG invokes <code>fredprx_ksp.dll</code>, which proxies the cryptographic operation over mTLS gRPC to the remote TPM/HSM server without exposing the raw private key.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Test Sign Slide-out Drawer Panel -->
+  <div id="test-sign-backdrop" class="drawer-backdrop hidden"></div>
+  <aside id="test-sign-drawer" class="drawer">
+    <div class="drawer-header">
+      <div class="drawer-title-group">
+        <div class="drawer-icon-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
+        </div>
+        <div>
+          <h3>Test Sign Certificate</h3>
+          <p>Perform CNG / KSP digital signature test</p>
+        </div>
+      </div>
+      <button class="drawer-close" id="btn-close-test-sign" title="Close Panel (Esc)">&times;</button>
+    </div>
+
+    <div class="drawer-body">
+      <!-- Certificate Picker -->
+      <div class="drawer-section">
+        <label class="drawer-label" for="ts-cert-select">Select Installed Certificate</label>
+        <select id="ts-cert-select" class="form-select">
+          <option value="">-- Select an installed certificate --</option>
+        </select>
+
+        <!-- Selected Cert Preview Card -->
+        <div id="ts-cert-preview" class="selected-cert-preview hidden">
+          <div class="preview-row">
+            <span class="preview-title" id="ts-preview-subject">Certificate Subject</span>
+            <span class="chip chip-accent" id="ts-preview-keytype">RSA 2048</span>
+          </div>
+          <div class="preview-meta">
+            <div><strong>Thumbprint:</strong> <code id="ts-preview-thumbprint">...</code></div>
+            <div><strong>Provider:</strong> <span id="ts-preview-provider">Fred Proxy Key Storage Provider</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payload Mode & Message -->
+      <div class="drawer-section">
+        <div class="section-header-row">
+          <label class="drawer-label">Data to Sign</label>
+          <div class="segmented-control">
+            <button type="button" class="segment active" data-mode="text" id="btn-mode-text">Text</button>
+            <button type="button" class="segment" data-mode="hex" id="btn-mode-hex">Hex Digest</button>
+          </div>
+        </div>
+
+        <!-- Text Message Input -->
+        <div id="ts-input-text-group" class="payload-group">
+          <textarea id="ts-input-message" class="form-textarea" rows="3" placeholder="Enter text to hash and sign...">Hello from Fred Proxy KSP!</textarea>
+          <div class="preset-pills">
+            <span class="preset-label">Presets:</span>
+            <button type="button" class="preset-pill" data-text="Hello from Fred Proxy KSP!">Hello World</button>
+            <button type="button" class="preset-pill" data-text="TLS 1.3 ClientCertificateVerify Handshake Digest Payload">TLS Handshake</button>
+            <button type="button" class="preset-pill" data-preset="timestamp">Timestamp Ping</button>
+          </div>
+        </div>
+
+        <!-- Raw Hex Input -->
+        <div id="ts-input-hex-group" class="payload-group hidden">
+          <input type="text" id="ts-input-hex" class="form-input" placeholder="e.g. e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" />
+          <small class="form-hint" id="ts-hex-hint">Expected: 32 bytes (64 hex characters) for SHA-256</small>
+        </div>
+      </div>
+
+      <!-- Signing Options: Hash & RSA Padding -->
+      <div class="drawer-section">
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="drawer-label" for="ts-hash-select">Hash Algorithm</label>
+            <select id="ts-hash-select" class="form-select">
+              <option value="SHA256" selected>SHA-256 (32-byte)</option>
+              <option value="SHA384">SHA-384 (48-byte)</option>
+              <option value="SHA512">SHA-512 (64-byte)</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="ts-padding-group">
+            <label class="drawer-label" for="ts-padding-select">RSA Padding</label>
+            <select id="ts-padding-select" class="form-select">
+              <option value="pkcs1" selected>PKCS#1 v1.5</option>
+              <option value="pss">PSS (RSASSA-PSS)</option>
+            </select>
+          </div>
+        </div>
+        <div id="ts-ecdsa-note" class="info-note hidden">
+          ℹ️ Selected certificate uses ECDSA. RSA padding is omitted automatically.
+        </div>
+      </div>
+
+      <!-- Action Button -->
+      <div class="drawer-action">
+        <button type="button" class="btn btn-primary btn-block" id="btn-execute-sign">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
+          <span id="ts-btn-label">Execute Test Sign</span>
+        </button>
+      </div>
+
+      <!-- Result Section -->
+      <div id="ts-result-container" class="ts-result-container hidden">
+        <div class="result-header">
+          <div class="result-status-badge">
+            <span class="chip chip-success" id="ts-result-status">Signature OK</span>
+            <span class="chip chip-accent" id="ts-result-duration">⚡ 0 ms</span>
+          </div>
+        </div>
+
+        <div class="result-detail-card">
+          <div class="result-field">
+            <span class="result-field-label">Algorithm:</span>
+            <strong id="ts-result-alg" class="result-field-val">RSASSA-PKCS1-v1_5</strong>
+          </div>
+          
+          <div class="result-field">
+            <div class="field-label-with-copy">
+              <span class="result-field-label">Digest (<span id="ts-result-hashname">SHA-256</span>):</span>
+              <button type="button" class="btn-copy-sm" id="btn-copy-digest" title="Copy Digest Hex">Copy</button>
+            </div>
+            <code id="ts-result-digest" class="code-box-inline"></code>
+          </div>
+
+          <div class="result-field">
+            <div class="field-label-with-copy">
+              <span class="result-field-label">Signature:</span>
+              <div class="sig-format-switch">
+                <button type="button" class="format-btn active" id="btn-fmt-base64" data-fmt="base64">Base64</button>
+                <button type="button" class="format-btn" id="btn-fmt-hex" data-fmt="hex">Hex</button>
+                <button type="button" class="btn-copy-sm ml-2" id="btn-copy-signature" title="Copy Signature">Copy</button>
+              </div>
+            </div>
+            <textarea id="ts-result-signature" class="code-box-textarea" readonly rows="4"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error Result Box -->
+      <div id="ts-error-box" class="message-box error hidden"></div>
+    </div>
+  </aside>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirm-modal" class="modal-backdrop hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modal-title">Confirm Action</h3>
+        <button class="modal-close" id="btn-modal-close">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        Are you sure you want to proceed?
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-modal-cancel">Cancel</button>
+        <button class="btn btn-danger" id="btn-modal-confirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

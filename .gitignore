@@ -4,6 +4,7 @@ tools/protoc.zip
 build/
 *.exe
 *.obj
+*.syso
 .DS_Store
 *.app
 *.log

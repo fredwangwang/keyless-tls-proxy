@@ -48,14 +48,32 @@ echo "Compiling fredprx_ksp.dll..."
   "$ROOT_DIR/ksp/ksp.c" "$ROOT_DIR/ksp/tpmcert_storage.c" "$BUILD_DIR/tpmcertclient.a" \
   -lbcrypt -lncrypt -lcrypt32 -ladvapi32 -lws2_32 -lsecur32 "$ROOT_DIR/ksp/ksp.def"
 
-echo "Building ksp-register.exe and ksp-install-cert.exe..."
+echo "Building ksp-register.exe, ksp-install-cert.exe, and ksp-install-ui.exe..."
 CGO_ENABLED=1 CC="$CC_WIN" GOOS=windows GOARCH=amd64 go build -o "$BUILD_DIR/ksp-register.exe" "$ROOT_DIR/cmd/ksp-register"
 GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o "$BUILD_DIR/ksp-install-cert.exe" "$ROOT_DIR/cmd/ksp-install-cert"
+GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-H windowsgui" -o "$BUILD_DIR/ksp-install-ui.exe" "$ROOT_DIR/cmd/ksp-install-ui"
 
 echo "Creating windows-ksp.zip..."
 rm -f "$BUILD_DIR/windows-ksp.zip"
-zip -j "$BUILD_DIR/windows-ksp.zip" "$BUILD_DIR/fredprx_ksp.dll" "$BUILD_DIR/ksp-register.exe" "$BUILD_DIR/ksp-install-cert.exe"
+zip -j "$BUILD_DIR/windows-ksp.zip" "$BUILD_DIR/fredprx_ksp.dll" "$BUILD_DIR/ksp-register.exe" "$BUILD_DIR/ksp-install-cert.exe" "$BUILD_DIR/ksp-install-ui.exe"
 echo "Created: $BUILD_DIR/windows-ksp.zip"
+
+ISCC_BIN=""
+if command -v iscc >/dev/null 2>&1; then
+  ISCC_BIN="iscc"
+elif command -v ISCC.exe >/dev/null 2>&1; then
+  ISCC_BIN="ISCC.exe"
+elif [ -f "$LOCALAPPDATA/Programs/Inno Setup 6/ISCC.exe" ]; then
+  ISCC_BIN="$LOCALAPPDATA/Programs/Inno Setup 6/ISCC.exe"
+elif [ -f "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" ]; then
+  ISCC_BIN="/c/Program Files (x86)/Inno Setup 6/ISCC.exe"
+fi
+
+if [ -n "$ISCC_BIN" ]; then
+  echo "Building Windows Installer (FredProxyKSP-Setup.exe)..."
+  "$ISCC_BIN" "/DMyAppVersion=${TAG:-1.0.0}" "/O$BUILD_DIR" "/FFredProxyKSP-Setup" "$ROOT_DIR/installer/windows/ksp-installer.iss" || echo "Warning: Inno Setup build failed."
+fi
+
 
 # 4. Build macOS App & CTK Extension Bundle (KeylessProxy.zip)
 echo ""
@@ -71,25 +89,24 @@ echo ""
 echo "=========================================="
 echo " Release Artifacts Summary"
 echo "=========================================="
-ls -lh "$BUILD_DIR/cert-server-mac" "$BUILD_DIR/cert-server-windows.exe" "$BUILD_DIR/windows-ksp.zip" "$BUILD_DIR/KeylessProxy.zip"
+RELEASE_FILES=("$BUILD_DIR/cert-server-mac" "$BUILD_DIR/cert-server-windows.exe" "$BUILD_DIR/windows-ksp.zip" "$BUILD_DIR/KeylessProxy.zip")
+if [ -f "$BUILD_DIR/FredProxyKSP-Setup.exe" ]; then
+  RELEASE_FILES+=("$BUILD_DIR/FredProxyKSP-Setup.exe")
+fi
+
+ls -lh "${RELEASE_FILES[@]}"
 
 if [ -n "$TAG" ]; then
   echo ""
   echo "=== 5. Publishing to GitHub Release ($TAG) ==="
   if command -v gh >/dev/null 2>&1; then
     gh release create "$TAG" \
-      "$BUILD_DIR/cert-server-windows.exe" \
-      "$BUILD_DIR/cert-server-mac" \
-      "$BUILD_DIR/windows-ksp.zip" \
-      "$BUILD_DIR/KeylessProxy.zip" \
+      "${RELEASE_FILES[@]}" \
       --title "$TAG - Keyless TLS Proxy Release" \
       --notes "Keyless TLS Proxy release $TAG" \
       --draft=false || \
     gh release upload "$TAG" \
-      "$BUILD_DIR/cert-server-windows.exe" \
-      "$BUILD_DIR/cert-server-mac" \
-      "$BUILD_DIR/windows-ksp.zip" \
-      "$BUILD_DIR/KeylessProxy.zip" \
+      "${RELEASE_FILES[@]}" \
       --clobber
   else
     echo "Warning: 'gh' CLI not found. Skipping release upload."
