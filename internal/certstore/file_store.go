@@ -269,6 +269,20 @@ func listFromFileStore() []CertificateInfo {
 	return out
 }
 
+func listFromFileStoreByProvider(providerName string) []CertificateInfo {
+	fileStoreMu.RLock()
+	defer fileStoreMu.RUnlock()
+	out := make([]CertificateInfo, 0, len(fileStore))
+	for i := range fileStore {
+		if providerName == "" ||
+			strings.EqualFold(providerName, "Fred Proxy Key Storage Provider") ||
+			strings.Contains(strings.ToLower(fileStore[i].info.ProviderName), strings.ToLower(providerName)) {
+			out = append(out, fileStore[i].info)
+		}
+	}
+	return out
+}
+
 func signWithFileStore(thumbprint string, digest []byte, hash HashAlgorithm, padding RSAPadding) (*SignResult, error) {
 	expectedLen, err := hash.DigestSize()
 	if err != nil {

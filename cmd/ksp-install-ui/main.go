@@ -54,7 +54,7 @@ func main() {
 		Debug:     *debug,
 		AutoFocus: true,
 		WindowOptions: webview2.WindowOptions{
-			Title:  "Fred Proxy KSP - Certificate Manager",
+			Title:  "Keyless Proxy Ksp - Certificate Manager",
 			Width:  1060,
 			Height: 740,
 			IconId: 1,
@@ -67,7 +67,7 @@ func main() {
 	}
 	defer w.Destroy()
 
-	w.SetTitle("Fred Proxy KSP - Certificate Manager")
+	w.SetTitle("Keyless Proxy Ksp - Certificate Manager")
 	w.SetSize(1060, 740, webview2.HintNone)
 
 	// Inject bridge object initialization

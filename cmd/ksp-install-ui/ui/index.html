@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fred Proxy KSP Certificate Manager</title>
+  <title>Keyless Proxy Ksp Certificate Manager</title>
   <link rel="icon" type="image/png" href="icon.png">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -13,10 +13,10 @@
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-icon">
-          <img src="icon.png" alt="Fred Proxy KSP Logo" class="brand-img">
+          <img src="icon.png" alt="Keyless Proxy Ksp Logo" class="brand-img">
         </div>
         <div class="brand-text">
-          <h2>Fred Proxy KSP</h2>
+          <h2>Keyless Proxy Ksp</h2>
           <span>Certificate Manager</span>
         </div>
       </div>
@@ -257,7 +257,7 @@
           <div class="filter-stats">
             <span id="installed-stats-text">0 installed bindings</span>
             <button class="btn btn-secondary btn-sm" id="btn-reload-installed">
-              <span>Reload Manifest</span>
+              <span>Refresh</span>
             </button>
           </div>
         </div>
@@ -268,7 +268,7 @@
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
             </svg>
             <h3>No Certificates Installed</h3>
-            <p>No certificate bindings found in <code>installed.json</code>.</p>
+            <p>No certificates bound to KSP provider found in Windows Certificate Store.</p>
           </div>
         </div>
       </section>
@@ -300,10 +300,6 @@
                 <tr>
                   <td><strong>Config File:</strong></td>
                   <td><code id="diag-configfile">C:\ProgramData\fredprx-ksp\config.json</code></td>
-                </tr>
-                <tr>
-                  <td><strong>Manifest File:</strong></td>
-                  <td><code id="diag-manifestfile">C:\ProgramData\fredprx-ksp\installed.json</code></td>
                 </tr>
                 <tr>
                   <td><strong>Active Bindings:</strong></td>
@@ -386,10 +382,10 @@
 
         <!-- Text Message Input -->
         <div id="ts-input-text-group" class="payload-group">
-          <textarea id="ts-input-message" class="form-textarea" rows="3" placeholder="Enter text to hash and sign...">Hello from Fred Proxy KSP!</textarea>
+          <textarea id="ts-input-message" class="form-textarea" rows="3" placeholder="Enter text to hash and sign...">Hello from Keyless Proxy Ksp!</textarea>
           <div class="preset-pills">
             <span class="preset-label">Presets:</span>
-            <button type="button" class="preset-pill" data-text="Hello from Fred Proxy KSP!">Hello World</button>
+            <button type="button" class="preset-pill" data-text="Hello from Keyless Proxy Ksp!">Hello World</button>
             <button type="button" class="preset-pill" data-text="TLS 1.3 ClientCertificateVerify Handshake Digest Payload">TLS Handshake</button>
             <button type="button" class="preset-pill" data-preset="timestamp">Timestamp Ping</button>
           </div>

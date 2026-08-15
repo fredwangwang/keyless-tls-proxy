@@ -5,18 +5,22 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"net"
 	"sync"
 	"time"
 
 	certv1 "github.com/fredwangwang/keyless-tls-proxy/gen/cert/v1"
-	"github.com/fredwangwang/keyless-tls-proxy/internal/kspmanifest"
+	"github.com/fredwangwang/keyless-tls-proxy/internal/certstore"
+	"github.com/fredwangwang/keyless-tls-proxy/internal/kspcommon"
 	"github.com/fredwangwang/keyless-tls-proxy/internal/tlsutil"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
+
+var ErrNotInstalled = errors.New("certificate not installed in store for KSP provider")
 
 const listCacheTTL = 30 * time.Second
 
@@ -37,7 +41,6 @@ type Client struct {
 	rpc        certv1.CertServiceClient
 	cachedList []KeyInfo
 	cachedAt   time.Time
-	manifest   []string
 }
 
 var (
@@ -112,13 +115,6 @@ func (c *Client) Ping(ctx context.Context) error {
 }
 
 func (c *Client) ReloadManifest() error {
-	tps, err := kspmanifest.InstalledThumbprints()
-	if err != nil {
-		return err
-	}
-	c.mu.Lock()
-	c.manifest = tps
-	c.mu.Unlock()
 	return nil
 }
 
@@ -138,7 +134,7 @@ func (c *Client) refreshRemoteListLocked(ctx context.Context) error {
 			continue
 		}
 		info := KeyInfo{
-			Thumbprint:     kspmanifest.NormalizeThumbprint(cert.Thumbprint),
+			Thumbprint:     certstore.NormalizeThumbprint(cert.Thumbprint),
 			Subject:        cert.Subject,
 			Issuer:         cert.Issuer,
 			KeyAlgorithm:   cert.KeyAlgorithm,
@@ -168,36 +164,39 @@ func (c *Client) refreshRemoteListLocked(ctx context.Context) error {
 }
 
 func (c *Client) InstalledKeys(ctx context.Context) ([]KeyInfo, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	tps, err := kspmanifest.InstalledThumbprints()
-	if err != nil {
-		return nil, err
-	}
-	c.manifest = tps
-	if err := c.refreshRemoteListLocked(ctx); err != nil {
-		return nil, err
-	}
-	if len(c.manifest) == 0 {
-		return c.cachedList, nil
-	}
-	byTP := make(map[string]KeyInfo, len(c.cachedList))
-	for _, k := range c.cachedList {
-		byTP[k.Thumbprint] = k
-	}
-	out := make([]KeyInfo, 0, len(c.manifest))
-	for _, tp := range c.manifest {
-		if k, ok := byTP[tp]; ok {
-			out = append(out, k)
-		} else {
-			out = append(out, KeyInfo{Thumbprint: tp})
+	// Directly query the certificate store for certificates configured with our KSP provider.
+	storeCerts, err := certstore.ListCertificatesByProvider(kspcommon.ProviderName)
+	if err == nil && len(storeCerts) > 0 {
+		out := make([]KeyInfo, 0, len(storeCerts))
+		for _, sc := range storeCerts {
+			info := KeyInfo{
+				Thumbprint:     certstore.NormalizeThumbprint(sc.Thumbprint),
+				Subject:        sc.Subject,
+				Issuer:         sc.Issuer,
+				KeyAlgorithm:   sc.KeyAlgorithm,
+				KeySize:        int32(sc.KeySize),
+				CertificateDER: sc.CertificateDER,
+			}
+			if info.KeyAlgorithm == "RSA" && len(info.CertificateDER) > 0 {
+				blob, err := rsaPublicBlobFromDER(info.CertificateDER)
+				if err == nil {
+					info.RSAPublicBlob = blob
+				}
+			}
+			out = append(out, info)
 		}
+		return out, nil
 	}
-	return out, nil
+
+	// If no certificates found in provider store or unsupported platform, fallback to remote list
+	if err == certstore.ErrUnsupportedPlatform {
+		return c.AllKeys(ctx)
+	}
+	return nil, nil
 }
 
 func (c *Client) FindInstalled(ctx context.Context, thumbprint string) (*KeyInfo, error) {
-	tp := kspmanifest.NormalizeThumbprint(thumbprint)
+	tp := certstore.NormalizeThumbprint(thumbprint)
 	keys, err := c.InstalledKeys(ctx)
 	if err != nil {
 		return nil, err
@@ -207,22 +206,20 @@ func (c *Client) FindInstalled(ctx context.Context, thumbprint string) (*KeyInfo
 			return &keys[i], nil
 		}
 	}
-	return nil, kspmanifest.ErrNotInstalled
+	return nil, ErrNotInstalled
 }
 
 func (c *Client) SignHash(ctx context.Context, thumbprint string, digest []byte, hashAlg certv1.HashAlgorithm, padding certv1.RSAPadding) ([]byte, error) {
-	tp := kspmanifest.NormalizeThumbprint(thumbprint)
+	tp := certstore.NormalizeThumbprint(thumbprint)
 	if _, err := c.FindInstalled(ctx, tp); err != nil {
 		return nil, err
 	}
 	return c.SignHashDirect(ctx, tp, digest, hashAlg, padding)
 }
 
-// SignHashDirect signs a digest with the remote server without consulting the
-// local installation manifest. Used by the Linux bridge, which exposes every
-// certificate the server reports as having a private key.
+// SignHashDirect signs a digest with the remote server.
 func (c *Client) SignHashDirect(ctx context.Context, thumbprint string, digest []byte, hashAlg certv1.HashAlgorithm, padding certv1.RSAPadding) ([]byte, error) {
-	tp := kspmanifest.NormalizeThumbprint(thumbprint)
+	tp := certstore.NormalizeThumbprint(thumbprint)
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	resp, err := c.rpc.SignHash(ctx, &certv1.SignHashRequest{
@@ -237,8 +234,7 @@ func (c *Client) SignHashDirect(ctx context.Context, thumbprint string, digest [
 	return append([]byte(nil), resp.Signature...), nil
 }
 
-// AllKeys returns every remote certificate that has a private key, ignoring
-// the local installation manifest.
+// AllKeys returns every remote certificate that has a private key.
 func (c *Client) AllKeys(ctx context.Context) ([]KeyInfo, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()

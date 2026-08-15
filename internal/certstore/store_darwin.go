@@ -324,6 +324,26 @@ func ListCertificates() ([]CertificateInfo, error) {
 	return out, nil
 }
 
+func ListCertificatesByProvider(providerName string) ([]CertificateInfo, error) {
+	if CertDir() != "" {
+		return listFromFileStoreByProvider(providerName), nil
+	}
+	all, err := ListCertificates()
+	if err != nil {
+		return nil, err
+	}
+	if providerName == "" {
+		return all, nil
+	}
+	var out []CertificateInfo
+	for _, c := range all {
+		if strings.EqualFold(c.ProviderName, providerName) || strings.Contains(strings.ToLower(c.ProviderName), strings.ToLower(providerName)) {
+			out = append(out, c)
+		}
+	}
+	return out, nil
+}
+
 func SignHash(thumbprint string, digest []byte, hash HashAlgorithm, padding RSAPadding) (*SignResult, error) {
 	expectedLen, err := hash.DigestSize()
 	if err != nil {

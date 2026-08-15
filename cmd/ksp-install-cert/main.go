@@ -12,10 +12,10 @@ import (
 	"time"
 
 	certv1 "github.com/fredwangwang/keyless-tls-proxy/gen/cert/v1"
+	"github.com/fredwangwang/keyless-tls-proxy/internal/certstore"
 	"github.com/fredwangwang/keyless-tls-proxy/internal/kspclient"
 	"github.com/fredwangwang/keyless-tls-proxy/internal/kspcommon"
 	"github.com/fredwangwang/keyless-tls-proxy/internal/kspinstall"
-	"github.com/fredwangwang/keyless-tls-proxy/internal/kspmanifest"
 	"github.com/fredwangwang/keyless-tls-proxy/internal/server"
 	"github.com/fredwangwang/keyless-tls-proxy/internal/tlsutil"
 
@@ -181,11 +181,8 @@ func main() {
 		fatal(fmt.Errorf("server did not return certificate DER for selected cert"))
 	}
 
-	tp := kspmanifest.NormalizeThumbprint(selected.Thumbprint)
+	tp := certstore.NormalizeThumbprint(selected.Thumbprint)
 	if err := kspinstall.BindCertificateToKSP(selected.CertificateDer, tp); err != nil {
-		fatal(err)
-	}
-	if err := kspmanifest.Add(tp, selected.Subject); err != nil {
 		fatal(err)
 	}
 
@@ -198,27 +195,27 @@ func main() {
 }
 
 func listInstalled() error {
-	m, err := kspmanifest.Load()
+	certs, err := certstore.ListCertificatesByProvider(kspcommon.ProviderName)
 	if err != nil {
 		return err
 	}
-	if len(m.Keys) == 0 {
+	if len(certs) == 0 {
 		fmt.Println("No installed certificate bindings.")
 		return nil
 	}
 	fmt.Println("Installed certificate bindings:")
-	for _, e := range m.Keys {
-		fmt.Printf("  %s\n    subject: %s\n    installed: %s\n", e.Thumbprint, e.Subject, e.InstalledAt.Format(time.RFC3339))
+	for _, c := range certs {
+		fmt.Printf("  %s\n    subject: %s\n    issuer:  %s\n    key:     %s %d-bit\n", c.Thumbprint, c.Subject, c.Issuer, c.KeyAlgorithm, c.KeySize)
+		if !c.NotAfter.IsZero() {
+			fmt.Printf("    expires: %s\n", c.NotAfter.Format("2006-01-02 15:04:05 UTC"))
+		}
 	}
 	return nil
 }
 
 func uninstall(thumbprint string) error {
-	tp := kspmanifest.NormalizeThumbprint(thumbprint)
+	tp := certstore.NormalizeThumbprint(thumbprint)
 	if err := kspinstall.RemoveCertificateFromStore(tp); err != nil {
-		return err
-	}
-	if err := kspmanifest.Remove(tp); err != nil {
 		return err
 	}
 	fmt.Printf("Removed certificate binding: %s\n", tp)

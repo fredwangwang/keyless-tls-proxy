@@ -18,7 +18,6 @@ import (
 	"github.com/fredwangwang/keyless-tls-proxy/internal/kspclient"
 	"github.com/fredwangwang/keyless-tls-proxy/internal/kspcommon"
 	"github.com/fredwangwang/keyless-tls-proxy/internal/kspinstall"
-	"github.com/fredwangwang/keyless-tls-proxy/internal/kspmanifest"
 	"github.com/fredwangwang/keyless-tls-proxy/internal/server"
 	"github.com/fredwangwang/keyless-tls-proxy/internal/tlsutil"
 
@@ -62,7 +61,6 @@ type InstalledItem struct {
 	Subject      string `json:"subject"`
 	Issuer       string `json:"issuer,omitempty"`
 	NotAfter     string `json:"not_after,omitempty"`
-	InstalledAt  string `json:"installed_at"`
 	Provider     string `json:"provider"`
 	Container    string `json:"container"`
 	KeyAlgorithm string `json:"key_algorithm,omitempty"`
@@ -95,7 +93,6 @@ type DiagnosticsInfo struct {
 	ProviderName string `json:"provider_name"`
 	DataDir      string `json:"data_dir"`
 	ConfigPath   string `json:"config_path"`
-	ManifestPath string `json:"manifest_path"`
 	TotalKeys    int    `json:"total_keys"`
 	ConfigExists bool   `json:"config_exists"`
 }
@@ -256,12 +253,16 @@ func (a *AppAPI) ListRemoteCertificates(cfg ConfigData) ([]CertificateItem, erro
 		return nil, fmt.Errorf("list certificates: %w", err)
 	}
 
-	manifest, _ := kspmanifest.Load()
+	installedCerts, _ := certstore.ListCertificatesByProvider(kspcommon.ProviderName)
+	installedMap := make(map[string]bool, len(installedCerts))
+	for _, ic := range installedCerts {
+		installedMap[certstore.NormalizeThumbprint(ic.Thumbprint)] = true
+	}
 
 	items := make([]CertificateItem, 0, len(resp.Certificates))
 	for _, c := range resp.Certificates {
-		tp := kspmanifest.NormalizeThumbprint(c.Thumbprint)
-		isInstalled := manifest != nil && manifest.Contains(tp)
+		tp := certstore.NormalizeThumbprint(c.Thumbprint)
+		isInstalled := installedMap[tp]
 
 		item := CertificateItem{
 			Thumbprint:   tp,
@@ -323,7 +324,7 @@ func (a *AppAPI) InstallCertificate(cfg ConfigData, thumbprint string) (string, 
 		return "", fmt.Errorf("server address is required")
 	}
 
-	normTP := kspmanifest.NormalizeThumbprint(thumbprint)
+	normTP := certstore.NormalizeThumbprint(thumbprint)
 	if normTP == "" {
 		return "", fmt.Errorf("invalid thumbprint")
 	}
@@ -353,7 +354,7 @@ func (a *AppAPI) InstallCertificate(cfg ConfigData, thumbprint string) (string, 
 
 	var target *certv1.CertificateInfo
 	for _, c := range resp.Certificates {
-		if kspmanifest.NormalizeThumbprint(c.Thumbprint) == normTP {
+		if certstore.NormalizeThumbprint(c.Thumbprint) == normTP {
 			target = c
 			break
 		}
@@ -371,56 +372,40 @@ func (a *AppAPI) InstallCertificate(cfg ConfigData, thumbprint string) (string, 
 		return "", fmt.Errorf("bind certificate to Windows store: %w", err)
 	}
 
-	// 2. Add to manifest
-	if err := kspmanifest.Add(normTP, target.Subject); err != nil {
-		return "", fmt.Errorf("save to installed manifest: %w", err)
-	}
-
-	// 3. Ensure client config is also saved so KSP can find the proxy server
+	// 2. Ensure client config is also saved so KSP can find the proxy server
 	_ = a.SaveConfig(cfg)
 
 	return fmt.Sprintf("Successfully installed %s into Current User\\MY and bound to %s", target.Subject, kspcommon.ProviderName), nil
 }
 
-// ListInstalledCertificates lists all installed certificate bindings from the manifest, enriched with store metadata.
+// ListInstalledCertificates lists all installed certificate bindings from Windows Certificate Store.
 func (a *AppAPI) ListInstalledCertificates() ([]InstalledItem, error) {
-	m, err := kspmanifest.Load()
+	storeCerts, err := certstore.ListCertificatesByProvider(kspcommon.ProviderName)
 	if err != nil {
-		return nil, fmt.Errorf("load manifest: %w", err)
+		return nil, fmt.Errorf("query certificate store: %w", err)
 	}
 
-	// Cross-reference with Windows MY store certificates with private keys
-	storeCerts, _ := certstore.ListCertificates()
-	storeMap := make(map[string]certstore.CertificateInfo)
+	items := make([]InstalledItem, 0, len(storeCerts))
 	for _, sc := range storeCerts {
-		storeMap[kspmanifest.NormalizeThumbprint(sc.Thumbprint)] = sc
-	}
-
-	items := make([]InstalledItem, 0, len(m.Keys))
-	for _, e := range m.Keys {
-		tp := kspmanifest.NormalizeThumbprint(e.Thumbprint)
+		tp := certstore.NormalizeThumbprint(sc.Thumbprint)
+		provider := sc.ProviderName
+		if provider == "" {
+			provider = kspcommon.ProviderName
+		}
 		item := InstalledItem{
-			Thumbprint:  tp,
-			Subject:     e.Subject,
-			InstalledAt: e.InstalledAt.Local().Format("2006-01-02 15:04:05"),
-			Provider:    kspcommon.ProviderName,
-			Container:   tp,
+			Thumbprint:   tp,
+			Subject:      sc.Subject,
+			Issuer:       sc.Issuer,
+			Provider:     provider,
+			Container:    tp,
+			KeyAlgorithm: sc.KeyAlgorithm,
+			KeySize:      sc.KeySize,
+			IsTPM:        sc.IsTPM,
+			InStore:      true,
 		}
-
-		if sc, found := storeMap[tp]; found {
-			item.InStore = true
-			item.KeyAlgorithm = sc.KeyAlgorithm
-			item.KeySize = sc.KeySize
-			item.IsTPM = sc.IsTPM
-			item.Issuer = sc.Issuer
-			if !sc.NotAfter.IsZero() {
-				item.NotAfter = sc.NotAfter.UTC().Format("2006-01-02 15:04 UTC")
-			}
-			if sc.ProviderName != "" {
-				item.Provider = sc.ProviderName
-			}
+		if !sc.NotAfter.IsZero() {
+			item.NotAfter = sc.NotAfter.UTC().Format("2006-01-02 15:04 UTC")
 		}
-
 		items = append(items, item)
 	}
 	return items, nil
@@ -428,7 +413,7 @@ func (a *AppAPI) ListInstalledCertificates() ([]InstalledItem, error) {
 
 // TestSign performs a cryptographic test signature on a given payload using a certificate in Windows MY store.
 func (a *AppAPI) TestSign(req TestSignRequest) (*TestSignResult, error) {
-	normTP := kspmanifest.NormalizeThumbprint(req.Thumbprint)
+	normTP := certstore.NormalizeThumbprint(req.Thumbprint)
 	if normTP == "" {
 		return nil, fmt.Errorf("certificate thumbprint is required")
 	}
@@ -512,7 +497,7 @@ func (a *AppAPI) TestSign(req TestSignRequest) (*TestSignResult, error) {
 	subject := normTP
 	if certs, err := certstore.ListCertificates(); err == nil {
 		for _, c := range certs {
-			if kspmanifest.NormalizeThumbprint(c.Thumbprint) == normTP {
+			if certstore.NormalizeThumbprint(c.Thumbprint) == normTP {
 				subject = c.Subject
 				break
 			}
@@ -532,24 +517,15 @@ func (a *AppAPI) TestSign(req TestSignRequest) (*TestSignResult, error) {
 	}, nil
 }
 
-// UninstallCertificate unbinds and deletes the certificate from Windows store and manifest.
+// UninstallCertificate unbinds and deletes the certificate from Windows store.
 func (a *AppAPI) UninstallCertificate(thumbprint string) (string, error) {
-	tp := kspmanifest.NormalizeThumbprint(thumbprint)
+	tp := certstore.NormalizeThumbprint(thumbprint)
 	if tp == "" {
 		return "", fmt.Errorf("invalid thumbprint")
 	}
 
-	var storeErr error
 	if err := kspinstall.RemoveCertificateFromStore(tp); err != nil {
-		storeErr = err
-	}
-
-	if err := kspmanifest.Remove(tp); err != nil {
-		return "", fmt.Errorf("remove from manifest: %w", err)
-	}
-
-	if storeErr != nil {
-		return fmt.Sprintf("Removed from manifest (Windows store note: %v)", storeErr), nil
+		return "", fmt.Errorf("remove certificate from store: %w", err)
 	}
 
 	return fmt.Sprintf("Successfully uninstalled certificate %s", tp), nil
@@ -562,11 +538,8 @@ func (a *AppAPI) SelectFile(title string, filterDesc string, filterPattern strin
 
 // GetDiagnostics returns environment paths, provider info, and stats.
 func (a *AppAPI) GetDiagnostics() (*DiagnosticsInfo, error) {
-	manifest, _ := kspmanifest.Load()
-	totalKeys := 0
-	if manifest != nil {
-		totalKeys = len(manifest.Keys)
-	}
+	installedCerts, _ := certstore.ListCertificatesByProvider(kspcommon.ProviderName)
+	totalKeys := len(installedCerts)
 
 	cfgPath := kspcommon.ConfigPath()
 	_, cfgErr := os.Stat(cfgPath)
@@ -575,7 +548,6 @@ func (a *AppAPI) GetDiagnostics() (*DiagnosticsInfo, error) {
 		ProviderName: kspcommon.ProviderName,
 		DataDir:      kspcommon.DataDir(),
 		ConfigPath:   cfgPath,
-		ManifestPath: kspcommon.ManifestPath(),
 		TotalKeys:    totalKeys,
 		ConfigExists: cfgErr == nil,
 	}, nil

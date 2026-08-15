@@ -147,3 +147,23 @@ func TestFileStoreMismatchedKey(t *testing.T) {
 		t.Fatal("SetCertDir should fail when key does not match certificate")
 	}
 }
+
+func TestFileStoreListCertificatesByProvider(t *testing.T) {
+	dir := t.TempDir()
+	writeCertKeyPair(t, dir, "rsa-cert", true)
+	if err := certstore.SetCertDir(dir); err != nil {
+		t.Fatalf("SetCertDir: %v", err)
+	}
+	defer certstore.SetCertDir("")
+
+	certs, err := certstore.ListCertificatesByProvider("file store")
+	if err != nil {
+		t.Fatalf("ListCertificatesByProvider: %v", err)
+	}
+	if len(certs) != 1 {
+		t.Fatalf("expected 1 cert, got %d", len(certs))
+	}
+	if certs[0].Subject != "CN=rsa-cert" {
+		t.Fatalf("unexpected subject: %s", certs[0].Subject)
+	}
+}

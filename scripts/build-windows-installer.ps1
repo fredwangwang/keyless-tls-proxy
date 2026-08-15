@@ -2,7 +2,7 @@ param(
     [string]$Version = "1.0.0",
     [switch]$SkipBuild,
     [string]$OutputDir = "build",
-    [string]$OutputFilename = "FredProxyKSP-Setup",
+    [string]$OutputFilename = "KeylessProxyKsp-Setup",
     [switch]$InstallCompiler
 )
 
@@ -28,7 +28,7 @@ if (-not (Test-Path $icoPath)) {
 $kspDll = Join-Path $TargetBuildDir "fredprx_ksp.dll"
 $kspRegister = Join-Path $TargetBuildDir "ksp-register.exe"
 $kspInstallCert = Join-Path $TargetBuildDir "ksp-install-cert.exe"
-$kspInstallUi = Join-Path $TargetBuildDir "ksp-install-ui.exe"
+$kspInstallUi = Join-Path $TargetBuildDir "KeylessProxyKsp.exe"
 
 $missingBinaries = (-not (Test-Path $kspDll)) -or (-not (Test-Path $kspRegister)) -or (-not (Test-Path $kspInstallCert)) -or (-not (Test-Path $kspInstallUi))
 

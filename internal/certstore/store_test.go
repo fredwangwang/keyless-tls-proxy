@@ -54,3 +54,26 @@ func TestSignHash(t *testing.T) {
 		t.Logf("PSS Signature length: %d, SigAlg: %s", len(resPSS.Signature), resPSS.SignatureAlgorithm)
 	}
 }
+
+func TestListCertificatesByProvider(t *testing.T) {
+	certs, err := certstore.ListCertificatesByProvider("Microsoft Software Key Storage Provider")
+	if err != nil {
+		if err == certstore.ErrUnsupportedPlatform {
+			t.Skip("certificate store not supported on this platform")
+		}
+		t.Fatalf("ListCertificatesByProvider error: %v", err)
+	}
+	t.Logf("Found %d certificates for Microsoft Software Key Storage Provider", len(certs))
+
+	kspCerts, err := certstore.ListCertificatesByProvider("Fred Proxy Key Storage Provider")
+	if err != nil {
+		if err == certstore.ErrUnsupportedPlatform {
+			t.Skip("certificate store not supported on this platform")
+		}
+		t.Fatalf("ListCertificatesByProvider error: %v", err)
+	}
+	t.Logf("Found %d certificates for Fred Proxy Key Storage Provider", len(kspCerts))
+	for _, c := range kspCerts {
+		t.Logf("  KSP Cert: %s (%s) Provider: %s", c.Subject, c.Thumbprint, c.ProviderName)
+	}
+}

@@ -126,7 +126,6 @@ func RemoveCertificateFromStore(thumbprint string) error {
 	if err != nil {
 		return err
 	}
-	defer freeCertContext(ctx)
 
 	r, _, errno := procCertDeleteCertificateFromStore.Call(uintptr(unsafe.Pointer(ctx)))
 	if r == 0 {

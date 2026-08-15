@@ -12,6 +12,14 @@ func ListCertificates() ([]CertificateInfo, error) {
 	return listFromFileStore(), nil
 }
 
+// ListCertificatesByProvider returns certificates matching providerName from the file-backed store.
+func ListCertificatesByProvider(providerName string) ([]CertificateInfo, error) {
+	if CertDir() == "" {
+		return nil, ErrUnsupportedPlatform
+	}
+	return listFromFileStoreByProvider(providerName), nil
+}
+
 // SignHash signs a digest using the private key of the matching certificate
 // in the file-backed store configured with SetCertDir.
 func SignHash(thumbprint string, digest []byte, hash HashAlgorithm, padding RSAPadding) (*SignResult, error) {

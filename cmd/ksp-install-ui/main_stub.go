@@ -8,6 +8,6 @@ import (
 )
 
 func main() {
-	fmt.Fprintf(os.Stderr, "ksp-install-ui is only supported on Windows.\n")
+	fmt.Fprintf(os.Stderr, "KeylessProxyKsp is only supported on Windows.\n")
 	os.Exit(1)
 }

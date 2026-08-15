@@ -24,7 +24,7 @@ if (-not $GoCmd) {
 $TargetDir = Join-Path $Root $OutputDir
 New-Item -ItemType Directory -Force -Path $TargetDir | Out-Null
 
-$OutExe = Join-Path $TargetDir "ksp-install-ui.exe"
+$OutExe = Join-Path $TargetDir "KeylessProxyKsp.exe"
 
 # Update Windows PE resource object (.syso) if windres is available
 $rcFile = Join-Path $Root "cmd\ksp-install-ui\app.rc"
@@ -38,9 +38,9 @@ if ($windresCmd -and (Test-Path $rcFile)) {
 $LdFlags = ""
 if (-not $Debug) {
     $LdFlags = "-s -w -H windowsgui"
-    Write-Host "Building KSP Install UI (Release GUI mode)..."
+    Write-Host "Building KeylessProxyKsp UI (Release GUI mode)..."
 } else {
-    Write-Host "Building KSP Install UI (Debug mode with console)..."
+    Write-Host "Building KeylessProxyKsp UI (Debug mode with console)..."
 }
 
 $buildArgs = @("build")

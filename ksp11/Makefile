@@ -21,7 +21,7 @@ BRIDGE_SO := libtpmcertclient.so
 
 all: ksp11.so $(BRIDGE_SO)
 
-$(BRIDGE_SO): $(wildcard ../internal/kspbridge/*.go) $(wildcard ../internal/kspclient/*.go) $(wildcard ../internal/kspcommon/*.go) $(wildcard ../internal/kspmanifest/*.go) $(wildcard ../internal/tlsutil/*.go)
+$(BRIDGE_SO): $(wildcard ../internal/kspbridge/*.go) $(wildcard ../internal/kspclient/*.go) $(wildcard ../internal/kspcommon/*.go) $(wildcard ../internal/tlsutil/*.go)
 	cd .. && CGO_ENABLED=1 $(GO) build -buildmode=c-shared -o ksp11/$(BRIDGE_SO) ./internal/kspbridge
 
 ksp11.so: ksp11.c

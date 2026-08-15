@@ -131,7 +131,11 @@ The KSP lets Windows applications on a **client machine** use TPM-backed or stor
 
 ### Build on Windows
 
-Requires Go 1.26+, Visual Studio C++ build tools, and CGO (`CGO_ENABLED=1`):
+**Prerequisites:**
+- **Go 1.26+**
+- **CGO Toolchain (MSVCRT x86_64)**: For Windows CGO builds, use [llvm-mingw-20260616-msvcrt-x86_64.zip](https://github.com/mstorsjo/llvm-mingw/releases/download/20260616/llvm-mingw-20260616-msvcrt-x86_64.zip). Extract and add its `bin/` directory to your `PATH` (or ensure `gcc` is in `PATH`).
+- **Visual Studio C++ Build Tools** (or GCC from llvm-mingw)
+- **Inno Setup 6** (for installer compilation): `winget install --id JRSoftware.InnoSetup`
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/build-ksp.ps1
@@ -141,10 +145,11 @@ Outputs in `build/`:
 - `fredprx_ksp.dll` — CNG Key Storage Provider
 - `ksp-register.exe` — register/unregister the provider (admin)
 - `ksp-install-cert.exe` — install and bind a remote certificate
+- `KeylessProxyKsp.exe` — graphical certificate management app
 
 ### Windows Installer (Recommended)
 
-The easiest way to install Fred Proxy KSP and the graphical Certificate Manager is using the Windows Installer package.
+The easiest way to install Keyless Proxy Ksp and the graphical Certificate Manager is using the Windows Installer package.
 
 #### 1. Build the Installer
 
@@ -153,19 +158,19 @@ powershell -ExecutionPolicy Bypass -File scripts/build-windows-installer.ps1
 ```
 *(Or run `powershell -ExecutionPolicy Bypass -File scripts/build-ksp.ps1 -Installer`)*
 
-This produces `build/FredProxyKSP-Setup.exe`.
+This produces `build/KeylessProxyKsp-Setup.exe`.
 
 #### 2. Install
 
-Run `FredProxyKSP-Setup.exe` (requires Administrator elevation). The installer:
+Run `KeylessProxyKsp-Setup.exe` (requires Administrator elevation). The installer:
 1. Installs `fredprx_ksp.dll` into `C:\Windows\System32\` and registers **Fred Proxy Key Storage Provider** with Windows CNG.
-2. Installs **Fred Proxy Certificate Manager** (`ksp-install-ui.exe`), `ksp-register.exe`, and `ksp-install-cert.exe` into `C:\Program Files\Fred Proxy KSP\`.
+2. Installs **Keyless Proxy Ksp Certificate Manager** (`KeylessProxyKsp.exe`), `ksp-register.exe`, and `ksp-install-cert.exe` into `C:\Program Files\Keyless Proxy Ksp\`.
 3. Creates Start Menu and optional Desktop shortcuts.
 4. Supports unattended/silent deployment via `/VERYSILENT /NORESTART`.
 
 #### 3. Manage Certificates (GUI)
 
-Launch **Fred Proxy Certificate Manager** from the Start Menu or run `ksp-install-ui.exe`:
+Launch **Keyless Proxy Ksp Certificate Manager** from the Start Menu or run `KeylessProxyKsp.exe`:
 - Auto-discovers `cert-server` instances on your LAN.
 - Configures server connection and mTLS credentials (`ca.crt`, `client.crt`, `client.key`).
 - Browses remote certificates and installs them into **Current User\MY** with one click.
@@ -200,7 +205,7 @@ If you prefer building and registering manually without the installer:
      -cert certs\client.crt `
      -key certs\client.key
    ```
-   This writes `%ProgramData%\fredprx-ksp\config.json`, prompts to select a certificate, installs it into **Current User\MY**, and records the thumbprint in `%ProgramData%\fredprx-ksp\installed.json`.
+   This writes `%ProgramData%\fredprx-ksp\config.json`, prompts to select a certificate, and installs it into **Current User\MY** bound to the KSP provider. Installed bindings are queried directly from the certificate store.
 5. Windows applications can now acquire the private key via `CryptAcquireCertificatePrivateKey`; signing is delegated to `cert-server`.
 
 ### Manage KSP bindings via CLI

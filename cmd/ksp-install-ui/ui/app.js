@@ -1,4 +1,4 @@
-// Fred Proxy KSP UI Controller
+// Keyless Proxy Ksp UI Controller
 
 const state = {
   activeTab: 'tab-connect',
@@ -239,7 +239,7 @@ function setupEventListeners() {
       const preset = pill.getAttribute('data-preset');
       const text = pill.getAttribute('data-text');
       if (preset === 'timestamp') {
-        elements.tsInputMessage.value = `Fred Proxy KSP Ping - ${new Date().toISOString()} [Nonce: ${Math.random().toString(36).substring(2, 10)}]`;
+        elements.tsInputMessage.value = `Keyless Proxy Ksp Ping - ${new Date().toISOString()} [Nonce: ${Math.random().toString(36).substring(2, 10)}]`;
       } else if (text) {
         elements.tsInputMessage.value = text;
       }
@@ -627,7 +627,7 @@ function renderInstalledCertificates() {
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
         </svg>
         <h3>No Certificate Bindings Found</h3>
-        <p>No certificates are currently bound to Fred Proxy KSP.</p>
+        <p>No certificates are currently bound to Keyless Proxy Ksp.</p>
       </div>
     `;
     return;
@@ -639,7 +639,7 @@ function renderInstalledCertificates() {
         <span class="installed-title">${escapeHtml(c.subject || 'Unknown Subject')}</span>
         <span class="installed-sub">${formatThumbprint(c.thumbprint)}</span>
         <span class="installed-meta">
-          Installed: ${escapeHtml(c.installed_at || 'Unknown')} &bull; Provider: <code>${escapeHtml(c.provider)}</code>
+          Provider: <code>${escapeHtml(c.provider)}</code>
           ${c.key_algorithm ? ` &bull; Key: <strong>${escapeHtml(c.key_algorithm)} ${c.key_size ? `${c.key_size}-bit` : ''}</strong>` : ''}
           ${c.is_tpm ? ' <span class="chip chip-info">TPM</span>' : ''}
         </span>
@@ -668,7 +668,7 @@ function renderInstalledCertificates() {
 window.promptUninstall = function(thumbprint, subject) {
   showConfirmModal(
     'Uninstall Certificate Binding',
-    `Are you sure you want to remove the certificate binding for <strong>${escapeHtml(subject)}</strong> (${formatThumbprint(thumbprint)}) from Windows MY store and the installed manifest?`,
+    `Are you sure you want to remove the certificate binding for <strong>${escapeHtml(subject)}</strong> (${formatThumbprint(thumbprint)}) from Windows Certificate Store?`,
     async () => {
       try {
         if (window.backend && window.backend.UninstallCertificate) {
@@ -888,7 +888,9 @@ async function loadDiagnostics() {
         elements.diagProvider.textContent = diag.provider_name || 'Fred Proxy Key Storage Provider';
         elements.diagDataDir.textContent = diag.data_dir || '';
         elements.diagConfigFile.textContent = diag.config_path || '';
-        elements.diagManifestFile.textContent = diag.manifest_path || '';
+        if (elements.diagManifestFile) {
+          elements.diagManifestFile.textContent = diag.manifest_path || '';
+        }
         elements.diagKeyCount.textContent = `${diag.total_keys} keys active`;
       }
     }

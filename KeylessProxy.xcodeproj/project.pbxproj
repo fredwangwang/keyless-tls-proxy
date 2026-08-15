@@ -248,7 +248,6 @@
 				"$(PROJECT_DIR)/internal/kspclient/client.go",
 				"$(PROJECT_DIR)/internal/kspclient/config.go",
 				"$(PROJECT_DIR)/internal/kspcommon/paths.go",
-				"$(PROJECT_DIR)/internal/kspmanifest/manifest.go",
 				"$(PROJECT_DIR)/internal/tlsutil/tls.go",
 				"$(PROJECT_DIR)/gen/cert/v1/cert.pb.go",
 				"$(PROJECT_DIR)/gen/cert/v1/cert_grpc.pb.go",

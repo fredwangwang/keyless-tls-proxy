@@ -22,7 +22,3 @@ func DataDir() string {
 func ConfigPath() string {
 	return filepath.Join(DataDir(), "config.json")
 }
-
-func ManifestPath() string {
-	return filepath.Join(DataDir(), "installed.json")
-}

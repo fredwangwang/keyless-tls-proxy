@@ -28,7 +28,7 @@ if ($windresCmd -and (Test-Path $rcFile)) {
     & $windresCmd.Source -i "$rcFile" --target=pe-x86-64 -O coff -o "$sysoFile"
 }
 
-go build -ldflags="-H windowsgui" -o (Join-Path $BuildDir "ksp-install-ui.exe") ./cmd/ksp-install-ui
+go build -ldflags="-H windowsgui" -o (Join-Path $BuildDir "KeylessProxyKsp.exe") ./cmd/ksp-install-ui
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 $archive = Join-Path $BuildDir "tpmcertclient.a"
@@ -50,44 +50,16 @@ function Build-With-Gcc {
     return $LASTEXITCODE
 }
 
-function Build-With-Msvc {
-    param([string]$Vcvars)
-    Write-Host "Building KSP DLL with MSVC..."
-    $sources = ($kspSources | ForEach-Object { "`"$_`"" }) -join " "
-    $cmd = @"
-call "$Vcvars" >nul && cl /nologo /O2 /LD /W3 /TC /I"$Root\ksp" $sources /Fe:"$dllOut" /link "$archive" bcrypt.lib ncrypt.lib crypt32.lib advapi32.lib ws2_32.lib secur32.lib /DEF:"$Root\ksp\ksp.def"
+$gccCmd = Get-Command gcc -ErrorAction SilentlyContinue
+if (-not $gccCmd) {
+    Write-Error @"
+No usable C compiler found (gcc required).
+For Windows CGO builds, download and add llvm-mingw (MSVCRT x86_64) to your PATH:
+  https://github.com/mstorsjo/llvm-mingw/releases/download/20260616/llvm-mingw-20260616-msvcrt-x86_64.zip
 "@
-    cmd /c $cmd
-    return $LASTEXITCODE
 }
-
-$built = $false
-$vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-if (Test-Path $vswhere) {
-    $vsPath = & $vswhere -latest -products * -property installationPath
-    if ($vsPath) {
-        $vcvarsCandidates = @(
-            (Join-Path $vsPath "VC\Auxiliary\Build\vcvars64.bat")
-        )
-        foreach ($vcvars in $vcvarsCandidates) {
-            if (Test-Path $vcvars) {
-                if ((Build-With-Msvc -Vcvars $vcvars) -eq 0) {
-                    $built = $true
-                    break
-                }
-            }
-        }
-    }
-}
-
-if (-not $built) {
-    $gccCmd = Get-Command gcc -ErrorAction SilentlyContinue
-    if (-not $gccCmd) {
-        Write-Error "No usable C compiler found (MSVC vcvars or gcc required)."
-    }
-    if ((Build-With-Gcc -Gcc $gccCmd.Source) -ne 0) {
-        exit 1
-    }
+if ((Build-With-Gcc -Gcc $gccCmd.Source) -ne 0) {
+    exit 1
 }
 
 Write-Host ""
@@ -95,7 +67,7 @@ Write-Host "Build complete:"
 Write-Host "  $dllOut"
 Write-Host "  $(Join-Path $BuildDir 'ksp-register.exe')"
 Write-Host "  $(Join-Path $BuildDir 'ksp-install-cert.exe')"
-Write-Host "  $(Join-Path $BuildDir 'ksp-install-ui.exe')"
+Write-Host "  $(Join-Path $BuildDir 'KeylessProxyKsp.exe')"
 
 if ($Installer) {
     Write-Host ""

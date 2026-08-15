@@ -1,5 +1,5 @@
-; Fred Proxy Key Storage Provider - Inno Setup Installer Script
-; Bundles fredprx_ksp.dll, ksp-install-ui.exe, ksp-register.exe, and ksp-install-cert.exe.
+; KeylessProxy Key Storage Provider - Inno Setup Installer Script
+; Bundles fredprx_ksp.dll, KeylessProxyKsp.exe, ksp-register.exe, and ksp-install-cert.exe.
 ; Automatically registers the CNG KSP provider on install and unregisters it on uninstall.
 
 #ifndef MyAppVersion
@@ -13,11 +13,11 @@
   #define KspDllHash ""
 #endif
 
-#define MyAppName "Fred Proxy Key Storage Provider"
-#define MyAppShortName "FredProxyKSP"
+#define MyAppName "Keyless Proxy Key Storage Provider"
+#define MyAppShortName "Keyless Proxy Ksp"
 #define MyAppPublisher "Fred Wang"
 #define MyAppURL "https://github.com/fredwangwang/keyless-tls-proxy"
-#define MyAppExeName "ksp-install-ui.exe"
+#define MyAppExeName "KeylessProxyKsp.exe"
 
 [Setup]
 ; Unique application ID
@@ -29,11 +29,11 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
-DefaultDirName={autopf}\Fred Proxy KSP
-DefaultGroupName=Fred Proxy KSP
+DefaultDirName={autopf}\Keyless Proxy Ksp
+DefaultGroupName=Keyless Proxy Ksp
 AllowNoIcons=yes
 OutputDir=..\..\build
-OutputBaseFilename=FredProxyKSP-Setup
+OutputBaseFilename=KeylessProxyKsp-Setup
 SetupIconFile=..\..\assets\AppIcon.ico
 UninstallDisplayIcon={app}\AppIcon.ico
 Compression=lzma2/max
@@ -61,7 +61,7 @@ Source: "..\..\build\fredprx_ksp.dll"; DestDir: "{sys}"; Flags: 64bit restartrep
 ; Keep a copy in the application folder
 Source: "..\..\build\fredprx_ksp.dll"; DestDir: "{app}"; Flags: 64bit ignoreversion
 ; GUI Certificate Manager
-Source: "..\..\build\ksp-install-ui.exe"; DestDir: "{app}"; Flags: 64bit ignoreversion
+Source: "..\..\build\KeylessProxyKsp.exe"; DestDir: "{app}"; Flags: 64bit ignoreversion
 ; Provider Registration Tool
 Source: "..\..\build\ksp-register.exe"; DestDir: "{app}"; Flags: 64bit ignoreversion
 ; Certificate Installation CLI Utility
@@ -70,15 +70,15 @@ Source: "..\..\build\ksp-install-cert.exe"; DestDir: "{app}"; Flags: 64bit ignor
 Source: "..\..\assets\AppIcon.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\Fred Proxy Certificate Manager"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\AppIcon.ico"
+Name: "{group}\Keyless Proxy Ksp Certificate Manager"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\AppIcon.ico"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\Fred Proxy Certificate Manager"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\AppIcon.ico"; Tasks: desktopicon
+Name: "{autodesktop}\Keyless Proxy Ksp Certificate Manager"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\AppIcon.ico"; Tasks: desktopicon
 
 [Run]
 ; 1. Register Fred Proxy Key Storage Provider with Windows CNG
 Filename: "{app}\ksp-register.exe"; Parameters: "-register"; StatusMsg: "Registering Fred Proxy Key Storage Provider with Windows CNG..."; Flags: runhidden waituntilterminated
 ; 2. Offer to launch Certificate Manager post-install
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,Fred Proxy Certificate Manager}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,Keyless Proxy Ksp Certificate Manager}"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
 ; Unregister the KSP provider from CNG before files are removed

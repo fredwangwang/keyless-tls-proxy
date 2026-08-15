@@ -48,14 +48,14 @@ echo "Compiling fredprx_ksp.dll..."
   "$ROOT_DIR/ksp/ksp.c" "$ROOT_DIR/ksp/tpmcert_storage.c" "$BUILD_DIR/tpmcertclient.a" \
   -lbcrypt -lncrypt -lcrypt32 -ladvapi32 -lws2_32 -lsecur32 "$ROOT_DIR/ksp/ksp.def"
 
-echo "Building ksp-register.exe, ksp-install-cert.exe, and ksp-install-ui.exe..."
+echo "Building ksp-register.exe, ksp-install-cert.exe, and KeylessProxyKsp.exe..."
 CGO_ENABLED=1 CC="$CC_WIN" GOOS=windows GOARCH=amd64 go build -o "$BUILD_DIR/ksp-register.exe" "$ROOT_DIR/cmd/ksp-register"
 GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o "$BUILD_DIR/ksp-install-cert.exe" "$ROOT_DIR/cmd/ksp-install-cert"
-GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-H windowsgui" -o "$BUILD_DIR/ksp-install-ui.exe" "$ROOT_DIR/cmd/ksp-install-ui"
+GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-H windowsgui" -o "$BUILD_DIR/KeylessProxyKsp.exe" "$ROOT_DIR/cmd/ksp-install-ui"
 
 echo "Creating windows-ksp.zip..."
 rm -f "$BUILD_DIR/windows-ksp.zip"
-zip -j "$BUILD_DIR/windows-ksp.zip" "$BUILD_DIR/fredprx_ksp.dll" "$BUILD_DIR/ksp-register.exe" "$BUILD_DIR/ksp-install-cert.exe" "$BUILD_DIR/ksp-install-ui.exe"
+zip -j "$BUILD_DIR/windows-ksp.zip" "$BUILD_DIR/fredprx_ksp.dll" "$BUILD_DIR/ksp-register.exe" "$BUILD_DIR/ksp-install-cert.exe" "$BUILD_DIR/KeylessProxyKsp.exe"
 echo "Created: $BUILD_DIR/windows-ksp.zip"
 
 ISCC_BIN=""
@@ -70,8 +70,8 @@ elif [ -f "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" ]; then
 fi
 
 if [ -n "$ISCC_BIN" ]; then
-  echo "Building Windows Installer (FredProxyKSP-Setup.exe)..."
-  "$ISCC_BIN" "/DMyAppVersion=${TAG:-1.0.0}" "/O$BUILD_DIR" "/FFredProxyKSP-Setup" "$ROOT_DIR/installer/windows/ksp-installer.iss" || echo "Warning: Inno Setup build failed."
+  echo "Building Windows Installer (KeylessProxyKsp-Setup.exe)..."
+  "$ISCC_BIN" "/DMyAppVersion=${TAG:-1.0.0}" "/O$BUILD_DIR" "/FKeylessProxyKsp-Setup" "$ROOT_DIR/installer/windows/ksp-installer.iss" || echo "Warning: Inno Setup build failed."
 fi
 
 
@@ -90,8 +90,8 @@ echo "=========================================="
 echo " Release Artifacts Summary"
 echo "=========================================="
 RELEASE_FILES=("$BUILD_DIR/cert-server-mac" "$BUILD_DIR/cert-server-windows.exe" "$BUILD_DIR/windows-ksp.zip" "$BUILD_DIR/KeylessProxy.zip")
-if [ -f "$BUILD_DIR/FredProxyKSP-Setup.exe" ]; then
-  RELEASE_FILES+=("$BUILD_DIR/FredProxyKSP-Setup.exe")
+if [ -f "$BUILD_DIR/KeylessProxyKsp-Setup.exe" ]; then
+  RELEASE_FILES+=("$BUILD_DIR/KeylessProxyKsp-Setup.exe")
 fi
 
 ls -lh "${RELEASE_FILES[@]}"
